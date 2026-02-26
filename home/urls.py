@@ -1,7 +1,6 @@
-from django.contrib import admin
-from django.urls import path, include
+from django.urls import path
+from .views import MenuCategoryListView
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('', include('home.urls')),
+    path('menu-categories/', MenuCategoryListView.as_view(), name='menu-categories'),
 ]
