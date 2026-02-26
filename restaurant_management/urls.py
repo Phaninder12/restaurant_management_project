@@ -16,8 +16,10 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path,include
+from django.http import HttpResponse
 
 urlpatterns = [
+    path('', lambda request: HttpResponse("<h1>Welcome to Restaurant Management API 🍽️</h1><p>Use <b>/api/products/items/</b> to see menu items</p>")),
     path('admin/', admin.site.urls),
     path('api/',include('home.urls')),
     path('api/accounts/',include('account.urls')),
