@@ -19,4 +19,4 @@ def get_today_operating_hours():
         
     except DailyOperatingHours.DoesNotExist:
         # 4. Return (None, None) if the day is missing or restaurant is closed
-        return (None, None)
+        return (None, None) 
