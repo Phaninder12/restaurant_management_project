@@ -26,7 +26,7 @@ class NutritionalInformation(models.Model):
     def __str__(self):
         return f"{self.menu_item.item_name} - {self.calories} kcal"    
     
-class MenuItem(models.Model):
+class ProductMenuItem(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField()
     price = models.DecimalField(max_digits=6, decimal_places=2)
@@ -34,3 +34,15 @@ class MenuItem(models.Model):
 
     def __str__(self):
         return self.name    
+    
+class Ingredient(models.Model):
+    name = models.CharField(max_length=100)
+    is_allergen = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.name
+
+class MenuItem(models.Model):
+    name = models.CharField(max_length=255)
+    # ... other fields ...
+    ingredients = models.ManyToManyField(Ingredient, related_name="menu_items")    
