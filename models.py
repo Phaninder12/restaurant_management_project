@@ -1,55 +1,11 @@
-import datetime
-from django.db import models # type: ignore
+from django.db import models
 
-class MenuCategory(models.Model):
-    name = models.CharField(max_length=100)
-
-    def __str__(self):
-        return self.name
-
-class MenuItem(models.Model):
-    name = models.CharField(max_length=255)
-    price = models.DecimalField(max_digits=6, decimal_places=2)
-    is_featured = models.BooleanField(default=False)
-    # Adding the many-to-many relationship for ingredients
-    ingredients = models.ManyToManyField('Ingredient', related_name="menu_items", blank=True)
+# Create your models here.
+class Item(models.Model):
+    item_name = models.CharField(max_length=150)
+    item_price = models.DecimalField(max_digits=10, decimal_places=2)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return self.name
-
-class Ingredient(models.Model):
-    name = models.CharField(max_length=100)
-    is_allergen = models.BooleanField(default=False)
-
-    def __str__(self):
-        return self.name
-
-class Restaurant(models.Model):
-    name = models.CharField(max_length=255)
-    address = models.TextField()
-    has_delivery = models.BooleanField(default=False)
-
-    def __str__(self):
-        return self.name
-
-class DailySpecialManager(models.Manager):
-    def upcoming(self):
-        today = datetime.date.today()
-        # Note: This requires the 'date' field to exist in the model
-        return self.filter(date__gte=today).order_by('date')
-
-class DailySpecial(models.Model):
-    name = models.CharField(max_length=100)
-    description = models.TextField()
-    date = models.DateField(null=True, blank=True) # Ensure this matches your manager logic
-    price = models.DecimalField(max_digits=5, decimal_places=2)
-    is_active = models.BooleanField(default=True)
-
-    objects = DailySpecialManager()
-
-    @staticmethod
-    def get_random_special():
-        return DailySpecial.objects.filter(is_active=True).order_by('?').first()
-
-    def __str__(self):
-        return f"{self.name} ({self.date})"
+        return str(self.item_name)                   
+                              
