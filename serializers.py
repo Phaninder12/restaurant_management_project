@@ -1,18 +1,34 @@
-from rest_framework import serializers # type: ignore
-from .models import Item, MenuItem
+from rest_framework import serializers
+from .models import MenuCategory, MenuItem, Ingredient # Added Ingredient here
+
+class MenuCategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MenuCategory
+        fields = ['id', 'name']
+
+class MenuItemSerializer(serializers.ModelSerializer):
+    category_name = serializers.ReadOnlyField(source='category.name')
+
+    class Meta:
+        model = MenuItem
+        fields = ['id', 'name', 'price', 'is_featured', 'category', 'category_name']
 
 class ItemSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Item
-        fields = ['id', 'item_name', 'item_price', 'created_at']
+        model = MenuItem 
+        fields = '__all__'
 
-class MenuItemSerializer(serializers.ModelSerializer):
+# --- ADD THE CODE BELOW TO FIX THE ERROR ---
+
+class IngredientSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Ingredient
+        fields = ['id', 'name', 'is_allergen']
+
+class MenuItemIngredientsSerializer(serializers.ModelSerializer):
+    # This nests the ingredients inside the MenuItem response
+    ingredients = IngredientSerializer(many=True, read_only=True)
+
     class Meta:
         model = MenuItem
-        fields = ['id', 'name', 'description', 'price', 'is_available']
-
-    # Custom validation for price
-    def validate_price(self, value):
-        if value <= 0:
-            raise serializers.ValidationError("Price must be a positive number.")
-        return value
+        fields = ['id', 'name', 'ingredients']
