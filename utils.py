@@ -1,22 +1,17 @@
-from datetime import datetime
-from .models import DailyOperatingHours
+import secrets
+import string
 
-def get_today_operating_hours():
+def generate_coupon_code(length=10):
     """
-    Returns the opening and closing times for the current day of the week.
-    Returns: (open_time, close_time) or (None, None) if not found.
+    Generates a unique, cryptographically secure alphanumeric coupon code.
     """
-    # 1. Get the current day of the week (e.g., 'Monday', 'Tuesday')
-    current_day = datetime.now().strftime('%A')
-
-    try:
-        # 2. Query the model for the current day's entry
-        # We use .get() because days should be unique in this model
-        hours_entry = DailyOperatingHours.objects.get(day=current_day)
+    from orders.models import Coupon # Local import prevents circular dependency
+    
+    characters = string.ascii_uppercase + string.digits
+    
+    while True:
+        code = ''.join(secrets.choice(characters) for _ in range(length))
         
-        # 3. Return the tuple of times
-        return (hours_entry.open_time, hours_entry.close_time)
-        
-    except DailyOperatingHours.DoesNotExist:
-        # 4. Return (None, None) if the day is missing or restaurant is closed
-        return (None, None)
+        # Check if the code already exists in the database
+        if not Coupon.objects.filter(code=code).exists():
+            return code
