@@ -1,15 +1,16 @@
-from rest_framework import serializers
-from .models import MenuCategory, MenuItem
+from rest_framework import serializers # type: ignore
+from .models import Order, OrderItem
 
-class MenuCategorySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = MenuCategory
-        fields = ['id', 'name']
-
-class MenuItemSerializer(serializers.ModelSerializer):
-    # This displays the category name instead of just the ID number
-    category_name = serializers.ReadOnlyField(source='category.name')
+class OrderItemSerializer(serializers.ModelSerializer):
+    item_name = serializers.ReadOnlyField(source='menu_item.name')
 
     class Meta:
-        model = MenuItem
-        fields = ['id', 'name', 'price', 'is_featured', 'category', 'category_name']
+        model = OrderItem # type: ignore
+        fields = ['item_name', 'quantity', 'price']
+
+class OrderSerializer(serializers.ModelSerializer):
+    items = OrderItemSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Order # type: ignore
+        fields = ['id', 'created_at', 'total_price', 'items']
