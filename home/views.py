@@ -14,4 +14,4 @@ class FeaturedMenuItemView(ListAPIView):
 
     def get_queryset(self):
         # Using Item model and filtering by is_featured
-        return Item.objects.filter(is_featured=True)
+        return Item.objects.filter(is_featured=True) 
