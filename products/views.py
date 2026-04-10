@@ -1,26 +1,41 @@
-from django.shortcuts import render
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import viewsets, filters,permissions,status # type: ignore
+from rest_framework.pagination import PageNumberPagination # type: ignore
+from .models import Item,MenuItem
+from rest_framework.response import Response # type: ignore   
+from .serializers import MenuItemSerializer,ItemSerializer
 
-from .models import Item
-from .serializers import ItemSerializer
+class StandardResultsSetPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 100
 
-'''
-NOTE: Conside this as a reference and follow this same coding structure or format to work on you tasks
-'''
+class ItemViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Item.objects.all()
+    serializer_class = ItemSerializer
+    pagination_class = StandardResultsSetPagination
+    
+    # Configure the search backend
+    filter_backends = [filters.SearchFilter]
+    # This specifies which fields to search; 'item_name' maps to your model
+    search_fields = ['item_name']
 
-# Create your views here.
-class ItemView(APIView):
+class MenuItemViewSet(viewsets.ModelViewSet):
+    queryset = MenuItem.objects.all()
+    serializer_class = MenuItemSerializer
+    
+    # Restrict access to authenticated admins for write operations
+    def get_permissions(self):
+        if self.action in ['update', 'partial_update', 'destroy', 'create']:
+            return [permissions.IsAdminUser()]
+        return [permissions.AllowAny()]
 
-    def get(self, request):
-        items = Item.objects.all()
-        serializer = ItemSerializer(items, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    def post(self, request):
-        serializer = ItemSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    # Explicitly handling the update logic (DRF does this automatically, 
+    # but here is how you customize the response or catch exceptions)
+    def update(self, request, *args, **kwargs):
+        try:
+            return super().update(request, *args, **kwargs)
+        except Exception as e:
+            return Response(
+                {"error": "An unexpected error occurred during update.", "details": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )    
