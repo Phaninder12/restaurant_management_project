@@ -1,26 +1,17 @@
-from django.shortcuts import render
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
+from rest_framework.generics import ListAPIView # type: ignore
+from .models import MenuCategory
+from products.models import Item  # Changed MenuItem to Item
+from .serializers import MenuCategorySerializer, MenuItemSerializer  # Changed MenuItemSerializer to ItemSerializer
 
-from .models import Item
-from .serializers import ItemSerializer
+# Existing view for categories
+class MenuCategoryListView(ListAPIView):
+    queryset = MenuCategory.objects.all()
+    serializer_class = MenuCategorySerializer
 
-'''
-NOTE: Conside this as a reference and follow this same coding structure or format to work on you tasks
-'''
+# New view for featured items
+class FeaturedMenuItemView(ListAPIView):
+    serializer_class = MenuItemSerializer
 
-# Create your views here.
-class ItemView(APIView):
-
-    def get(self, request):
-        items = Item.objects.all()
-        serializer = ItemSerializer(items, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    def post(self, request):
-        serializer = ItemSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    def get_queryset(self):
+        # Using Item model and filtering by is_featured
+        return Item.objects.filter(is_featured=True)
