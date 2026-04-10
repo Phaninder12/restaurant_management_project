@@ -17,4 +17,4 @@ def generate_coupon_code(length=10):
         
         # Check if the code already exists in the database
         if not Coupon.objects.filter(code=code).exists():
-            return code
+            return code 
