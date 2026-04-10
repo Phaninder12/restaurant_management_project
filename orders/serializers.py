@@ -13,4 +13,4 @@ class OrderSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Order # type: ignore
-        fields = ['id', 'created_at', 'total_price', 'items']
+        fields = ['id', 'created_at', 'total_price', 'items'] 
