@@ -1,40 +1,21 @@
-import secrets
-import string
-from django.db.models import Sum # type: ignore
-from .models import Order
+import re
 
-def generate_coupon_code(length=10):
+def is_valid_phone_number(phone_string):
     """
-    Generates a unique, cryptographically secure alphanumeric coupon code.
+    Validates a phone number string using regular expressions.
+    Matches: +1 123-456-7890, 1234567890, (123) 456-7890, etc.
     """
-    from orders.models import Coupon # Local import prevents circular dependency
+    # Regex breakdown:
+    # ^(\+?\d{1,3})?          -> Optional country code (e.g., +1 or 91)
+    # [ \-\.]?                -> Optional separator (space, hyphen, or dot)
+    # \(?\d{3}\)?             -> 3 digits, optionally wrapped in parentheses
+    # [ \-\.]?\d{3}           -> 3 digits with optional separator
+    # [ \-\.]?\d{4}$          -> 4 digits at the end
     
-    characters = string.ascii_uppercase + string.digits
+    pattern = r'^(\+?\d{1,3})?[ \-\.]?\(?\d{3}\)?[ \-\.]?\d{3}[ \-\.]?\d{4}$'
     
-    while True:
-        code = ''.join(secrets.choice(characters) for _ in range(length))
-        
-        # Check if the code already exists in the database
-        if not Coupon.objects.filter(code=code).exists():
-            return code
+    # Use re.match to check the string against the pattern
+    if re.match(pattern, phone_string):
+        return True
+    return False
 
-def get_daily_sales_total(date):
-    """
-    Calculates the total revenue for a specific date.
-    
-    Args:
-        date (datetime.date): The date to calculate sales for.
-        
-    Returns:
-        Decimal: The total sum of all orders on that day, or 0 if no orders exist.
-    """
-    # 1. Filter orders by the specific date
-    # 2. Aggregate the 'total_price' field using Sum
-    daily_orders = Order.objects.filter(created_at__date=date)
-    
-    aggregation = daily_orders.aggregate(total_sum=Sum('total_price'))
-    
-    # Extract the sum from the dictionary; return 0 if the result is None
-    total = aggregation['total_sum']
-    
-    return total if total is not None else 0        
