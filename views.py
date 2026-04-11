@@ -1,13 +1,15 @@
 from rest_framework.generics import ListAPIView, RetrieveAPIView # type: ignore
 # Import models clearly
-from .models import MenuCategory, MenuItem as HomeMenuItem
+from .models import MenuCategory, MenuItem as HomeMenuItem,Table
 from products.models import Item,MenuItem
+
 
 # Import serializers
 from .serializers import (
     MenuCategorySerializer, 
     MenuItemSerializer, 
-    MenuItemIngredientsSerializer
+    MenuItemIngredientsSerializer,
+    TableSerializer
 )
 
 # 1. Existing view for categories
@@ -31,3 +33,8 @@ class MenuItemIngredientsView(RetrieveAPIView):
 def home_page(request):
     featured_dishes = MenuItem.objects.get_top_selling_items(3)
     return render(request, 'home/index.html', {'featured_dishes': featured_dishes})     # type: ignore
+
+class TableDetailView(RetrieveAPIView): # type: ignore
+    queryset = Table.objects.all()
+    serializer_class = TableSerializer
+    # lookup_field defaults to 'pk' (primary key), which matches the URL logic

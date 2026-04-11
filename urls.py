@@ -1,10 +1,8 @@
-from django.urls import path, include # type: ignore
-from rest_framework.routers import DefaultRouter # type: ignore
-from .views import MenuItemViewSet
-
-router = DefaultRouter()
-router.register(r'menu-items', MenuItemViewSet, basename='menuitem')
+from django.urls import path
+from .views import MenuCategoryListView, TableDetailView
 
 urlpatterns = [
-    path('api/', include(router.urls)),
+    path('menu-categories/', MenuCategoryListView.as_view(), name='menu-categories'),
+    # Detail endpoint: e.g., /api/tables/1/
+    path('api/tables/<int:pk>/', TableDetailView.as_view(), name='table-detail'),
 ]
