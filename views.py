@@ -55,3 +55,13 @@ class MenuItemListView(generics.ListAPIView): # type: ignore
             queryset = queryset.filter(category__name__iexact=category_name)
         
         return queryset    
+
+class AvailableTablesAPIView(generics.ListAPIView): # type: ignore
+    """
+    API endpoint that returns a list of all tables where is_available is True.
+    """
+    serializer_class = TableSerializer
+
+    def get_queryset(self):
+        # Filter the queryset to only include available tables
+        return Table.objects.filter(is_available=True)    
