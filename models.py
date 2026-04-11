@@ -1,97 +1,69 @@
-import datetime
 from django.db import models # type: ignore
-from django.db.models import Count # type: ignore
+from django.contrib.auth.models import User # type: ignore
+from home.models import MenuItem
 
-class MenuCategory(models.Model):
-    name = models.CharField(max_length=100)
+class OrderStatus(models.Model):
+    name = models.CharField(max_length=50)
 
-    def __str__(self):
-        return self.name
-
-class MenuItem(models.Model):
-    name = models.CharField(max_length=255)
-    price = models.DecimalField(max_digits=6, decimal_places=2)
-    is_featured = models.BooleanField(default=False)
-    # Adding the many-to-many relationship for ingredients
-    ingredients = models.ManyToManyField('Ingredient', related_name="menu_items", blank=True)
+    class Meta:
+        verbose_name_plural = "Order Statuses"
 
     def __str__(self):
         return self.name
 
-class Ingredient(models.Model):
-    name = models.CharField(max_length=100)
-    is_allergen = models.BooleanField(default=False)
-
-    def __str__(self):
-        return self.name
-
-class Restaurant(models.Model):
-    name = models.CharField(max_length=255)
-    address = models.TextField()
-    has_delivery = models.BooleanField(default=False)
-
-    def __str__(self):
-        return self.name
-
-class DailySpecialManager(models.Manager):
-    def upcoming(self):
-        today = datetime.date.today()
-        # Note: This requires the 'date' field to exist in the model
-        return self.filter(date__gte=today).order_by('date')
-
-class DailySpecial(models.Model):
-    name = models.CharField(max_length=100)
-    description = models.TextField()
-    date = models.DateField(null=True, blank=True) # Ensure this matches your manager logic
-    price = models.DecimalField(max_digits=5, decimal_places=2)
+class Coupon(models.Model):
+    code = models.CharField(max_length=50, unique=True)
+    # Add default=0 here
+    discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     is_active = models.BooleanField(default=True)
-
-    objects = DailySpecialManager()
-
-    @staticmethod
-    def get_random_special():
-        return DailySpecial.objects.filter(is_active=True).order_by('?').first()
-
-    def __str__(self):
-        return f"{self.name} ({self.date})"
     
-class DailyOperatingHours(models.Model):
-    DAYS_OF_WEEK = [
-        ('Monday', 'Monday'),
-        ('Tuesday', 'Tuesday'),
-        ('Wednesday', 'Wednesday'),
-        ('Thursday', 'Thursday'),
-        ('Friday', 'Friday'),
-        ('Saturday', 'Saturday'),
-        ('Sunday', 'Sunday'),
-    ]
-    day = models.CharField(max_length=10, choices=DAYS_OF_WEEK, unique=True)
-    open_time = models.TimeField()
-    close_time = models.TimeField()
-
     def __str__(self):
-        return f"{self.day}: {self.open_time} - {self.close_time}"    
-    
-# 1. Create the Custom Manager
-class MenuItemManager(models.Manager):
-    def get_top_selling_items(self, num_items=5):
-        """
-        Annotates each MenuItem with the count of related OrderItem instances,
-        orders them by that count descending, and limits the result.
-        """
-        return self.get_queryset().annotate(
-            order_count=Count('orderitem')  # 'orderitem' is the default related name
-        ).order_by('-order_count')[:num_items]
+        return self.code
 
-# 2. Attach it to your Model
-class MenuItem(models.Model):
-    name = models.CharField(max_length=200)
-    description = models.TextField()
+class Order(models.Model):
+    # Add default=1 here (assuming your first user ID is 1)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='orders', default=1)
+    status = models.ForeignKey(OrderStatus, on_delete=models.SET_NULL, null=True)
+    applied_coupon = models.ForeignKey(Coupon, on_delete=models.SET_NULL, null=True, blank=True)
+    total_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    def __str__(self):
+        return f"Order {self.id} by {self.user.username}"
+
+    @property
+    def customer(self):
+        return self.user.username
+
+    @property
+    def discount_amount(self):
+        return self.applied_coupon.discount_amount if self.applied_coupon else 0
+
+    @property
+    def final_price(self):
+        return self.total_price - self.discount_amount
+    
+    def get_unique_item_names(self):
+        """
+        Retrieves a list of unique names of all MenuItems 
+        associated with this specific order.
+        """
+        # Since OrderItem has related_name='items', use self.items
+        # We use a set comprehension for efficient uniqueness handling
+        unique_names = {
+            item.menu_item.name 
+            for item in self.items.all()
+        }
+        
+        return list(unique_names)
+
+# --- THIS WAS LIKELY MISSING ---
+class OrderItem(models.Model):
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
+    menu_item = models.ForeignKey(MenuItem, on_delete=models.CASCADE) 
+    quantity = models.PositiveIntegerField(default=1)
     price = models.DecimalField(max_digits=10, decimal_places=2)
-    # ... other fields ...
-
-    # Assign the custom manager
-    objects = MenuItemManager()
 
     def __str__(self):
-        return self.name    
+        return f"{self.quantity} x {self.menu_item.name}"
+    
