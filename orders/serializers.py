@@ -1,7 +1,26 @@
-from rest_framework import serializers # type: ignore
-from .models import Item
+from rest_framework import serializers
+from .models import Order, OrderItem
 
-class ItemSerializer(serializers.ModelSerializer):
+
+class OrderItemSerializer(serializers.ModelSerializer):
+    item_name = serializers.ReadOnlyField(source='item.item_name')
+
     class Meta:
-        model = Item
-        fields = ['id', 'item_name', 'item_price', 'created_at']
+        model = OrderItem
+        fields = ['item_name', 'quantity', 'price_at_time']
+
+
+class OrderSerializer(serializers.ModelSerializer):
+    customer_name = serializers.ReadOnlyField(source='customer.username')
+
+    class Meta:
+        model = Order
+        fields = ['id', 'customer_name', 'created_at', 'total_price', 'discount_amount', 'final_price', 'status']
+
+
+class OrderDetailSerializer(OrderSerializer):
+    items = OrderItemSerializer(many=True, read_only=True)
+
+    class Meta(OrderSerializer.Meta):
+        model = Order
+        fields = OrderSerializer.Meta.fields + ['items', 'applied_coupon']
