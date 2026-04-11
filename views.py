@@ -1,6 +1,6 @@
 from rest_framework.generics import ListAPIView, RetrieveAPIView # type: ignore
 # Import models clearly
-from .models import MenuCategory, MenuItem as HomeMenuItem,Table
+from .models import MenuCategory, MenuItem as HomeMenuItem,Table,MenuItem
 from products.models import Item,MenuItem
 
 
@@ -38,3 +38,20 @@ class TableDetailView(RetrieveAPIView): # type: ignore
     queryset = Table.objects.all()
     serializer_class = TableSerializer
     # lookup_field defaults to 'pk' (primary key), which matches the URL logic
+
+class MenuItemListView(generics.ListAPIView): # type: ignore
+    serializer_class = MenuItemSerializer
+
+    def get_queryset(self):
+        """
+        Optionally restricts the returned items to a given category,
+        by filtering against a `category` query parameter in the URL.
+        """
+        queryset = MenuItem.objects.all()
+        category_name = self.request.query_params.get('category')
+        
+        if category_name is not None:
+            # We use __iexact for case-insensitive matching (e.g., 'Pizza' vs 'pizza')
+            queryset = queryset.filter(category__name__iexact=category_name)
+        
+        return queryset    
