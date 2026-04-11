@@ -14,4 +14,4 @@ class RestaurantAdmin(admin.ModelAdmin):
     list_filter = ('is_active',)
 
 # 6. Register the model with its custom Admin class
-admin.site.register(Restaurant, RestaurantAdmin) 
+admin.site.register(Restaurant, RestaurantAdmin)
