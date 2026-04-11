@@ -1,9 +1,11 @@
-from django.db import models # type: ignore
-from django.contrib.auth.models import User # type: ignore
-from home.models import MenuItem
+from django.conf import settings
+from django.db import models
+from django.db.models import Q
+from products.models import Item
+
 
 class OrderStatus(models.Model):
-    name = models.CharField(max_length=50)
+    name = models.CharField(max_length=50, unique=True)
 
     class Meta:
         verbose_name_plural = "Order Statuses"
@@ -11,59 +13,77 @@ class OrderStatus(models.Model):
     def __str__(self):
         return self.name
 
+
 class Coupon(models.Model):
     code = models.CharField(max_length=50, unique=True)
-    # Add default=0 here
-    discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    discount_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     is_active = models.BooleanField(default=True)
-    
+    valid_from = models.DateField(auto_now_add=False, null=True, blank=True)
+    valid_until = models.DateField(null=True, blank=True)
+
     def __str__(self):
         return self.code
 
+
+class OrderManager(models.Manager):
+    def get_active_orders(self):
+        return self.filter(
+            Q(status__name='pending') | Q(status__name='processing')
+        )
+
+
 class Order(models.Model):
-    # Add default=1 here (assuming your first user ID is 1)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='orders', default=1)
-    status = models.ForeignKey(OrderStatus, on_delete=models.SET_NULL, null=True)
-    applied_coupon = models.ForeignKey(Coupon, on_delete=models.SET_NULL, null=True, blank=True)
-    total_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    customer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='orders',
+        null=True,
+        blank=True,
+    )
+    status = models.ForeignKey(
+        OrderStatus,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='orders',
+    )
+    applied_coupon = models.ForeignKey(
+        Coupon,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='used_orders',
+    )
+    total_price = models.DecimalField(max_digits=12, decimal_places=2, default=0, editable=False)
+    discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0, editable=False)
+    final_price = models.DecimalField(max_digits=12, decimal_places=2, default=0, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    objects = OrderManager()
+
     def __str__(self):
-        return f"Order {self.id} by {self.user.username}"
+        return f"Order {self.id}"
 
     @property
-    def customer(self):
-        return self.user.username
+    def customer_name(self):
+        return self.customer.username if self.customer else ''
 
-    @property
-    def discount_amount(self):
-        return self.applied_coupon.discount_amount if self.applied_coupon else 0
 
-    @property
-    def final_price(self):
-        return self.total_price - self.discount_amount
-    
-    def get_unique_item_names(self):
-        """
-        Retrieves a list of unique names of all MenuItems 
-        associated with this specific order.
-        """
-        # Since OrderItem has related_name='items', use self.items
-        # We use a set comprehension for efficient uniqueness handling
-        unique_names = {
-            item.menu_item.name 
-            for item in self.items.all()
-        }
-        
-        return list(unique_names)
-
-# --- THIS WAS LIKELY MISSING ---
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
-    menu_item = models.ForeignKey(MenuItem, on_delete=models.CASCADE) 
+    item = models.ForeignKey(
+        Item,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='order_items',
+    )
     quantity = models.PositiveIntegerField(default=1)
-    price = models.DecimalField(max_digits=10, decimal_places=2)
+    price_at_time = models.DecimalField(max_digits=10, decimal_places=2)
+
+    class Meta:
+        unique_together = ('order', 'item')
 
     def __str__(self):
-        return f"{self.quantity} x {self.menu_item.name}"
-    
+        return f"{self.quantity} x {self.item.item_name if self.item else 'Unknown item'}"

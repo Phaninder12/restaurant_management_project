@@ -1,39 +1,26 @@
-from rest_framework import serializers # type: ignore
-from .models import MenuCategory, MenuItem, Ingredient, Table # Added Ingredient and Table here
+from rest_framework import serializers
+from .models import Order, OrderItem
 
-class MenuCategorySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = MenuCategory
-        fields = ['id', 'name']
 
-class MenuItemSerializer(serializers.ModelSerializer):
-    category_name = serializers.ReadOnlyField(source='category.name')
+class OrderItemSerializer(serializers.ModelSerializer):
+    item_name = serializers.ReadOnlyField(source='item.item_name')
 
     class Meta:
-        model = MenuItem
-        fields = ['id', 'name', 'price', 'is_featured', 'category', 'category_name']
+        model = OrderItem
+        fields = ['item_name', 'quantity', 'price_at_time']
 
-class ItemSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = MenuItem 
-        fields = '__all__'
 
-# --- ADD THE CODE BELOW TO FIX THE ERROR ---
-
-class IngredientSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Ingredient
-        fields = ['id', 'name', 'is_allergen']
-
-class MenuItemIngredientsSerializer(serializers.ModelSerializer):
-    # This nests the ingredients inside the MenuItem response
-    ingredients = IngredientSerializer(many=True, read_only=True)
+class OrderSerializer(serializers.ModelSerializer):
+    customer_name = serializers.ReadOnlyField(source='customer.username')
 
     class Meta:
-        model = MenuItem
-        fields = ['id', 'name', 'ingredients']
+        model = Order
+        fields = ['id', 'customer_name', 'created_at', 'total_price', 'discount_amount', 'final_price', 'status']
 
-class TableSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Table
-        fields = ['table_number', 'capacity', 'is_available']
+
+class OrderDetailSerializer(OrderSerializer):
+    items = OrderItemSerializer(many=True, read_only=True)
+
+    class Meta(OrderSerializer.Meta):
+        model = Order
+        fields = OrderSerializer.Meta.fields + ['items', 'applied_coupon']
