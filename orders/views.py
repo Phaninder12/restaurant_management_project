@@ -1,35 +1,67 @@
-from rest_framework import generics # type: ignore
-from rest_framework.permissions import IsAuthenticated # type: ignore
-from .models import Order
-from .serializers import OrderSerializer
-from django.shortcuts import render, redirect # type: ignore
-from .utils import is_valid_email 
+from rest_framework.generics import ListAPIView, RetrieveAPIView # type: ignore
+# Import models clearly
+from .models import MenuCategory, MenuItem as HomeMenuItem,Table,MenuItem
+from products.models import Item,MenuItem
 
-# 1. This is a Class-Based View for your API
-class OrderHistoryListView(generics.ListAPIView):
-    serializer_class = OrderSerializer
-    permission_classes = [IsAuthenticated]
+
+# Import serializers
+from .serializers import (
+    MenuCategorySerializer, 
+    MenuItemSerializer, 
+    MenuItemIngredientsSerializer,
+    TableSerializer
+)
+
+# 1. Existing view for categories
+class MenuCategoryListView(ListAPIView):
+    queryset = MenuCategory.objects.all()
+    serializer_class = MenuCategorySerializer
+
+# 2. View for featured items (using products.Item)
+class FeaturedMenuItemView(ListAPIView):
+    serializer_class = MenuItemSerializer # Ensure this is the one from home.serializers
 
     def get_queryset(self):
-        # This restricts the results to the currently logged-in user
-        return Order.objects.filter(user=self.request.user).order_by('-created_at')
+        return Item.objects.filter(is_featured=True)
 
-# 2. This is a Function-Based View for your HTML Form (Moved outside the class)
-def place_order_view(request):
-    if request.method == 'POST':
-        user_email = request.POST.get('email')
+# 3. View for Ingredients (using home.MenuItem)
+class MenuItemIngredientsView(RetrieveAPIView):
+    # Use the 'HomeMenuItem' alias to be safe
+    queryset = HomeMenuItem.objects.all()
+    serializer_class = MenuItemIngredientsSerializer
 
-        # --- VALIDATION LOGIC ---
-        if not is_valid_email(user_email):
-            # If invalid, return the user to the form with an error message
-            return render(request, 'orders/checkout.html', {
-                'error': 'Please enter a valid email address.',
-                'data': request.POST 
-            })
-        # ------------------------
+def home_page(request):
+    featured_dishes = MenuItem.objects.get_top_selling_items(3)
+    return render(request, 'home/index.html', {'featured_dishes': featured_dishes})     # type: ignore
 
-        # If code reaches here, the email is valid!
-        # Proceed to save the order logic here...
-        return redirect('order_success')
+class TableDetailView(RetrieveAPIView): # type: ignore
+    queryset = Table.objects.all()
+    serializer_class = TableSerializer
+    # lookup_field defaults to 'pk' (primary key), which matches the URL logic
 
-    return render(request, 'orders/checkout.html')
+class MenuItemListView(generics.ListAPIView): # type: ignore
+    serializer_class = MenuItemSerializer
+
+    def get_queryset(self):
+        """
+        Optionally restricts the returned items to a given category,
+        by filtering against a `category` query parameter in the URL.
+        """
+        queryset = MenuItem.objects.all()
+        category_name = self.request.query_params.get('category')
+        
+        if category_name is not None:
+            # We use __iexact for case-insensitive matching (e.g., 'Pizza' vs 'pizza')
+            queryset = queryset.filter(category__name__iexact=category_name)
+        
+        return queryset    
+
+class AvailableTablesAPIView(generics.ListAPIView): # type: ignore
+    """
+    API endpoint that returns a list of all tables where is_available is True.
+    """
+    serializer_class = TableSerializer
+
+    def get_queryset(self):
+        # Filter the queryset to only include available tables
+        return Table.objects.filter(is_available=True)    
