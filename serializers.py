@@ -1,4 +1,4 @@
-from rest_framework import serializers
+from rest_framework import serializers # type: ignore
 from .models import MenuCategory, MenuItem, Ingredient, Table # Added Ingredient and Table here
 
 class MenuCategorySerializer(serializers.ModelSerializer):
@@ -36,4 +36,4 @@ class MenuItemIngredientsSerializer(serializers.ModelSerializer):
 class TableSerializer(serializers.ModelSerializer):
     class Meta:
         model = Table
-        fields = '__all__'
+        fields = ['table_number', 'capacity', 'is_available']
