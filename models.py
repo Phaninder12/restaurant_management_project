@@ -1,5 +1,6 @@
 import datetime
 from django.db import models # type: ignore
+from django.db.models import Count # type: ignore
 
 class MenuCategory(models.Model):
     name = models.CharField(max_length=100)
@@ -70,3 +71,27 @@ class DailyOperatingHours(models.Model):
 
     def __str__(self):
         return f"{self.day}: {self.open_time} - {self.close_time}"    
+    
+# 1. Create the Custom Manager
+class MenuItemManager(models.Manager):
+    def get_top_selling_items(self, num_items=5):
+        """
+        Annotates each MenuItem with the count of related OrderItem instances,
+        orders them by that count descending, and limits the result.
+        """
+        return self.get_queryset().annotate(
+            order_count=Count('orderitem')  # 'orderitem' is the default related name
+        ).order_by('-order_count')[:num_items]
+
+# 2. Attach it to your Model
+class MenuItem(models.Model):
+    name = models.CharField(max_length=200)
+    description = models.TextField()
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    # ... other fields ...
+
+    # Assign the custom manager
+    objects = MenuItemManager()
+
+    def __str__(self):
+        return self.name    
