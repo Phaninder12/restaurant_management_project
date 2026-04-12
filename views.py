@@ -1,51 +1,25 @@
-from django.shortcuts import render
-from rest_framework import generics
-from rest_framework.generics import ListAPIView, RetrieveAPIView
-from .models import MenuCategory, MenuItem, Table, Restaurant
-from .serializers import (
-    MenuCategorySerializer,
-    MenuItemSerializer,
-    MenuItemIngredientsSerializer,
-    TableSerializer,
-    RestaurantSerializer,
-)
+from rest_framework import generics, permissions # type: ignore
+from rest_framework.views import APIView # type: ignore
+from rest_framework.response import Response # type: ignore
+from .serializers import UserProfileSerializer
 
 
-class MenuCategoryListView(ListAPIView):
-    queryset = MenuCategory.objects.all()
-    serializer_class = MenuCategorySerializer
+class AccountRootView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        return Response({
+            'message': 'Account API root',
+            'endpoints': {
+                'profile_update': '/api/accounts/profile/update/'
+            }
+        })
 
 
-class MenuItemIngredientsView(RetrieveAPIView):
-    queryset = MenuItem.objects.all()
-    serializer_class = MenuItemIngredientsSerializer
+class UserProfileUpdateView(generics.RetrieveUpdateAPIView):
+    serializer_class = UserProfileSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
-
-def home_page(request):
-    featured_dishes = MenuItem.objects.get_top_selling_items(3)
-    return render(request, 'home/index.html', {'featured_dishes': featured_dishes})
-
-
-class TableDetailView(RetrieveAPIView):
-    queryset = Table.objects.all()
-    serializer_class = TableSerializer
-
-
-class RestaurantInfoAPIView(generics.ListAPIView):
-    queryset = Restaurant.objects.all()
-    serializer_class = RestaurantSerializer
-
-
-class MenuItemListView(generics.ListAPIView):
-    serializer_class = MenuItemSerializer
-
-    def get_queryset(self):
-        return MenuItem.objects.all()
-
-
-class AvailableTablesAPIView(generics.ListAPIView):
-    serializer_class = TableSerializer
-
-    def get_queryset(self):
-        return Table.objects.filter(is_available=True)
-       
+    def get_object(self):
+        # This ensures the user can only update THEIR own profile
+        return self.request.user
