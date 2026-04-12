@@ -88,5 +88,5 @@ class DailyOperatingHours(models.Model):
     close_time = models.TimeField()
 
     def __str__(self):
-        return f"{self.day}: {self.open_time} - {self.close_time}"
+        return f"{self.day}: {self.open_time} - {self.close_time}"  
     
