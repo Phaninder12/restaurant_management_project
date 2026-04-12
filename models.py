@@ -87,3 +87,29 @@ class OrderItem(models.Model):
 
     def __str__(self):
         return f"{self.quantity} x {self.item.item_name if self.item else 'Unknown item'}"
+    
+class LoyaltyProgram(models.Model):
+    name = models.CharField(
+        max_length=50, 
+        unique=True, 
+        help_text="The name of the loyalty tier (e.g., Silver Member)"
+    )
+    points_required = models.PositiveIntegerField(
+        unique=True, 
+        help_text="Minimum points required to reach this tier"
+    )
+    discount_percentage = models.DecimalField(
+        max_digits=5, 
+        decimal_places=2, 
+        help_text="Percentage discount for this tier (e.g., 5.00 for 5%)"
+    )
+    description = models.TextField(
+        blank=True, 
+        help_text="Brief explanation of the benefits"
+    )
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        ordering = ['points_required']    
