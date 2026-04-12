@@ -1,12 +1,13 @@
 from django.shortcuts import render
 from rest_framework import generics
 from rest_framework.generics import ListAPIView, RetrieveAPIView
-from .models import MenuCategory, MenuItem, Table
+from .models import MenuCategory, MenuItem, Table, Restaurant
 from .serializers import (
     MenuCategorySerializer,
     MenuItemSerializer,
     MenuItemIngredientsSerializer,
     TableSerializer,
+    RestaurantSerializer,
 )
 
 
@@ -28,6 +29,11 @@ def home_page(request):
 class TableDetailView(RetrieveAPIView):
     queryset = Table.objects.all()
     serializer_class = TableSerializer
+
+
+class RestaurantInfoAPIView(generics.ListAPIView):
+    queryset = Restaurant.objects.all()
+    serializer_class = RestaurantSerializer
 
 
 class MenuItemListView(generics.ListAPIView):
