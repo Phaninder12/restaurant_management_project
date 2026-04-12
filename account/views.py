@@ -22,4 +22,4 @@ class UserProfileUpdateView(generics.RetrieveUpdateAPIView):
 
     def get_object(self):
         # This ensures the user can only update THEIR own profile
-        return self.request.user
+        return self.request.user 
