@@ -1,26 +1,42 @@
 from rest_framework import serializers
-from .models import Order, OrderItem
+from .models import MenuCategory, MenuItem, Ingredient, Table, Restaurant
 
 
-class OrderItemSerializer(serializers.ModelSerializer):
-    item_name = serializers.ReadOnlyField(source='item.item_name')
+class MenuCategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MenuCategory
+        fields = ['id', 'name']
+
+
+class IngredientSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Ingredient
+        fields = ['id', 'name', 'is_allergen']
+
+
+class MenuItemSerializer(serializers.ModelSerializer):
+    ingredients = IngredientSerializer(many=True, read_only=True)
 
     class Meta:
-        model = OrderItem
-        fields = ['item_name', 'quantity', 'price_at_time']
+        model = MenuItem
+        fields = ['id', 'name', 'description', 'price', 'ingredients']
 
 
-class OrderSerializer(serializers.ModelSerializer):
-    customer_name = serializers.ReadOnlyField(source='customer.username')
+class MenuItemIngredientsSerializer(serializers.ModelSerializer):
+    ingredients = IngredientSerializer(many=True, read_only=True)
 
     class Meta:
-        model = Order
-        fields = ['id', 'customer_name', 'created_at', 'total_price', 'discount_amount', 'final_price', 'status']
+        model = MenuItem
+        fields = ['id', 'name', 'ingredients']
 
 
-class OrderDetailSerializer(OrderSerializer):
-    items = OrderItemSerializer(many=True, read_only=True)
+class TableSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Table
+        fields = ['id', 'number', 'capacity', 'is_available']
 
-    class Meta(OrderSerializer.Meta):
-        model = Order
-        fields = OrderSerializer.Meta.fields + ['items', 'applied_coupon']
+
+class RestaurantSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Restaurant
+        fields = ['id', 'name', 'address', 'has_delivery']
