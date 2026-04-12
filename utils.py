@@ -5,7 +5,10 @@ from .models import Order
 from django.core.validators import validate_email # type: ignore
 from django.core.exceptions import ValidationError # type: ignore
 import logging
-
+from django.core.mail import send_mail # type: ignore
+from django.conf import settings # type: ignore
+# Set up logging to capture errors
+logger = logging.getLogger(__name__)
 
 def generate_coupon_code(length=10):
     """
@@ -65,4 +68,32 @@ def is_valid_email(email_address):
     except Exception as e:
         # Catch unexpected errors to prevent application crashes
         logger.error(f"Unexpected error during email validation: {e}")
-        return False        
+        return False   
+
+def send_order_confirmation_email(order_id, customer_email, customer_name, total_price):
+    """
+    Sends an order confirmation email to the customer.
+    """
+    subject = f"Order Confirmation - #{order_id}"
+    message = (
+        f"Hi {customer_name},\n\n"
+        f"Thank you for your order! We've received order #{order_id}.\n"
+        f"Total Amount: ${total_price}\n\n"
+        f"We'll start preparing your food right away!"
+    )
+    from_email = settings.DEFAULT_FROM_EMAIL
+
+    try:
+        send_mail(
+            subject,
+            message,
+            from_email,
+            [customer_email],
+            fail_silently=False, # Set to False to catch exceptions
+        )
+        return True, "Email sent successfully."
+    
+    except Exception as e:
+        # This captures connection errors, SMTP issues, etc.
+        logger.error(f"Failed to send email for Order {order_id}: {str(e)}")
+        return False, f"Could not send email: {str(e)}"         
