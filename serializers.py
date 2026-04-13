@@ -12,6 +12,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
 class OrderSerializer(serializers.ModelSerializer):
     customer_name = serializers.ReadOnlyField(source='customer.username')
+    status = serializers.ReadOnlyField(source='status.name')
 
     class Meta:
         model = Order
