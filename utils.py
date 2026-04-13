@@ -202,4 +202,75 @@ def update_order_status(order_id, new_status):
     order.save(update_fields=['status', 'updated_at'])
     
     logger.info(f"Order {order_id} status updated from '{old_status}' to '{new_status}'.")
-    return True         
+    return True
+
+
+def calculate_order_total(order_items):
+    """
+    Calculates the total price of an order based on a list of order items.
+    
+    Each order item should be a dictionary or object with 'quantity' and 'price' keys/attributes.
+    
+    Args:
+        order_items (list): A list of order items, where each item has 'quantity' and 'price'.
+    
+    Returns:
+        Decimal: The total cost of the order. Returns 0.00 if the list is empty.
+    
+    Raises:
+        ValueError: If an item is missing 'quantity' or 'price', or if they are invalid types.
+    
+    Example:
+        items = [
+            {'quantity': 2, 'price': Decimal('10.50')},
+            {'quantity': 1, 'price': Decimal('5.25')}
+        ]
+        total = calculate_order_total(items)  # Returns Decimal('26.25')
+    """
+    from decimal import Decimal, InvalidOperation
+    
+    if not order_items:
+        return Decimal('0.00')
+    
+    total = Decimal('0.00')
+    
+    for item in order_items:
+        # Validate that item has required fields
+        if not hasattr(item, 'get') and not hasattr(item, '__getitem__'):
+            raise ValueError("Order items must be dictionaries or objects with quantity and price attributes.")
+        
+        # Get quantity and price, handling both dict and object access
+        try:
+            if hasattr(item, 'get'):  # dict-like
+                quantity = item.get('quantity')
+                price = item.get('price')
+            else:  # object-like
+                quantity = getattr(item, 'quantity', None)
+                price = getattr(item, 'price', None)
+        except (KeyError, AttributeError):
+            raise ValueError("Each order item must have 'quantity' and 'price' fields.")
+        
+        # Validate quantity
+        if quantity is None:
+            raise ValueError("Order item is missing 'quantity'.")
+        try:
+            quantity = int(quantity)
+            if quantity < 0:
+                raise ValueError("Quantity cannot be negative.")
+        except (TypeError, ValueError):
+            raise ValueError("Quantity must be a non-negative integer.")
+        
+        # Validate price
+        if price is None:
+            raise ValueError("Order item is missing 'price'.")
+        try:
+            price = Decimal(str(price))  # Convert to string first to handle various numeric types
+            if price < 0:
+                raise ValueError("Price cannot be negative.")
+        except (InvalidOperation, ValueError):
+            raise ValueError("Price must be a valid decimal number.")
+        
+        # Add to total
+        total += price * quantity
+    
+    return total         
