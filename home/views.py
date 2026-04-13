@@ -2,8 +2,8 @@ from django.shortcuts import render
 from rest_framework import generics
 from rest_framework.generics import ListAPIView, RetrieveAPIView, CreateAPIView
 from rest_framework.viewsets import ModelViewSet
-from rest_framework.permissions import AllowAny
-from .models import MenuCategory, MenuItem, Table, Restaurant, ContactFormSubmission
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from .models import MenuCategory, MenuItem, Table, Restaurant, ContactFormSubmission, UserReview
 from .serializers import (
     MenuCategorySerializer,
     MenuItemSerializer,
@@ -11,6 +11,7 @@ from .serializers import (
     TableSerializer,
     RestaurantSerializer,
     ContactFormSubmissionSerializer,
+    UserReviewSerializer,
 )
 
 
@@ -71,4 +72,21 @@ class AvailableTablesAPIView(generics.ListAPIView):
 
     def get_queryset(self):
         return Table.objects.filter(is_available=True)
+
+
+class UserReviewCreateView(generics.CreateAPIView):
+    serializer_class = UserReviewSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+
+class MenuItemReviewsView(generics.ListAPIView):
+    serializer_class = UserReviewSerializer
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        menu_item_id = self.kwargs['menu_item_id']
+        return UserReview.objects.filter(menu_item_id=menu_item_id).order_by('-review_date')
        

@@ -4,10 +4,12 @@ from .views import (
     AvailableTablesAPIView,
     DailySpecialsView,
     MenuCategoryViewSet,
+    MenuItemReviewsView,
     TableDetailView,
     MenuItemListView,
     RestaurantInfoAPIView,
     ContactFormSubmissionCreateAPIView,
+    UserReviewCreateView,
 )
 
 router = DefaultRouter()
@@ -15,6 +17,8 @@ router.register(r'menu-categories', MenuCategoryViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('reviews/', UserReviewCreateView.as_view(), name='create-review'),
+    path('menu-items/<int:menu_item_id>/reviews/', MenuItemReviewsView.as_view(), name='menu-item-reviews'),
     path('daily-specials/', DailySpecialsView.as_view(), name='daily-specials'),
     path('restaurant-info/', RestaurantInfoAPIView.as_view(), name='restaurant-info'),
     # Detail endpoint: e.g., /api/tables/1/
