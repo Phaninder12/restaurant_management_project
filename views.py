@@ -57,6 +57,14 @@ class MenuItemListView(generics.ListAPIView):
         return MenuItem.objects.all()
 
 
+class DailySpecialsView(generics.ListAPIView):
+    serializer_class = MenuItemSerializer
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        return MenuItem.objects.filter(is_daily_special=True)
+
+
 class AvailableTablesAPIView(generics.ListAPIView):
     serializer_class = TableSerializer
     permission_classes = [AllowAny]
