@@ -1,7 +1,6 @@
 import secrets
 import string
 from django.db.models import Sum # type: ignore
-from .models import Order
 from django.core.validators import validate_email # type: ignore
 from django.core.exceptions import ValidationError # type: ignore
 import logging
@@ -9,6 +8,22 @@ from django.core.mail import send_mail # type: ignore
 from django.conf import settings # type: ignore
 # Set up logging to capture errors
 logger = logging.getLogger(__name__)
+
+
+def generate_unique_order_id(length=8):
+    """
+    Generates a short, unique alphanumeric order identifier.
+    The function checks the database for collisions before returning.
+    """
+    from .models import Order
+
+    characters = string.ascii_uppercase + string.digits
+
+    while True:
+        order_id = ''.join(secrets.choice(characters) for _ in range(length))
+        if not Order.objects.filter(order_id=order_id).exists():
+            return order_id
+
 
 def generate_coupon_code(length=10):
     """
@@ -35,6 +50,9 @@ def get_daily_sales_total(date):
     Returns:
         Decimal: The total sum of all orders on that day, or 0 if no orders exist.
     """
+    # Import locally to avoid circular imports when models import utils
+    from .models import Order
+
     # 1. Filter orders by the specific date
     # 2. Aggregate the 'total_price' field using Sum
     daily_orders = Order.objects.filter(created_at__date=date)
