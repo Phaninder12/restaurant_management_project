@@ -1,25 +1,56 @@
-from rest_framework import generics, permissions # type: ignore
-from rest_framework.views import APIView # type: ignore
-from rest_framework.response import Response # type: ignore
-from .serializers import UserProfileSerializer
+from rest_framework import generics # type: ignore
+from rest_framework.permissions import IsAuthenticated # type: ignore
+from .models import Order
+from .serializers import OrderSerializer,OrderDetailSerializer
+from django.shortcuts import render, redirect # type: ignore
+from .utils import is_valid_email, send_email 
 
+# 1. This is a Class-Based View for your API
+class OrderHistoryListView(generics.ListAPIView):
+    serializer_class = OrderSerializer
+    permission_classes = [IsAuthenticated]
 
-class AccountRootView(APIView):
-    permission_classes = [permissions.AllowAny]
+    def get_queryset(self):
+        # This restricts the results to the currently logged-in user
+        return Order.objects.filter(user=self.request.user).order_by('-created_at')
 
-    def get(self, request):
-        return Response({
-            'message': 'Account API root',
-            'endpoints': {
-                'profile_update': '/api/accounts/profile/update/'
-            }
-        })
+# 2. This is a Function-Based View for your HTML Form (Moved outside the class)
+def place_order_view(request):
+    if request.method == 'POST':
+        user_email = request.POST.get('email')
 
+        # --- VALIDATION LOGIC ---
+        if not is_valid_email(user_email):
+            # If invalid, return the user to the form with an error message
+            return render(request, 'orders/checkout.html', {
+                'error': 'Please enter a valid email address.',
+                'data': request.POST 
+            })
+        # ------------------------
 
-class UserProfileUpdateView(generics.RetrieveUpdateAPIView):
-    serializer_class = UserProfileSerializer
-    permission_classes = [permissions.IsAuthenticated]
+        # If code reaches here, the email is valid!
+        # Proceed to save the order logic here...
+        
+        # Example: Send a confirmation email
+        subject = "Order Confirmation"
+        message_body = "Thank you for your order! We have received your request and will process it shortly."
+        success, msg = send_email(user_email, subject, message_body)
+        if not success:
+            # Handle email sending failure (e.g., log it or show a message)
+            print(f"Email sending failed: {msg}")
+        
+        return redirect('order_success')
 
-    def get_object(self):
-        # This ensures the user can only update THEIR own profile
-        return self.request.user
+    return render(request, 'orders/checkout.html')
+
+class OrderDetailAPIView(generics.RetrieveAPIView):
+    """
+    Retrieve details of a single order by its ID, 
+    restricted to the owner of the order.
+    """
+    serializer_class = OrderDetailSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        # Users can only retrieve orders they placed themselves
+        return Order.objects.filter(user=self.request.user)

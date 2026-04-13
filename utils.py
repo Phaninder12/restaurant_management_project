@@ -70,30 +70,47 @@ def is_valid_email(email_address):
         logger.error(f"Unexpected error during email validation: {e}")
         return False   
 
-def send_order_confirmation_email(order_id, customer_email, customer_name, total_price):
+def send_email(recipient_email, subject, message_body):
     """
-    Sends an order confirmation email to the customer.
+    Reusable utility function to send emails.
+    
+    Args:
+        recipient_email (str): The email address of the recipient.
+        subject (str): The subject line of the email.
+        message_body (str): The body content of the email.
+    
+    Returns:
+        tuple: (success: bool, message: str)
+            - success: True if email was sent successfully, False otherwise.
+            - message: A descriptive message about the result.
+    
+    Raises:
+        None: All exceptions are caught and returned as part of the tuple.
     """
-    subject = f"Order Confirmation - #{order_id}"
-    message = (
-        f"Hi {customer_name},\n\n"
-        f"Thank you for your order! We've received order #{order_id}.\n"
-        f"Total Amount: ${total_price}\n\n"
-        f"We'll start preparing your food right away!"
-    )
-    from_email = settings.DEFAULT_FROM_EMAIL
-
+    # Validate the recipient email
+    if not is_valid_email(recipient_email):
+        error_msg = f"Invalid recipient email address: {recipient_email}"
+        logger.warning(error_msg)
+        return False, error_msg
+    
+    # Get the default from email from settings
+    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@example.com')
+    
     try:
+        # Send the email using Django's send_mail
         send_mail(
-            subject,
-            message,
-            from_email,
-            [customer_email],
-            fail_silently=False, # Set to False to catch exceptions
+            subject=subject,
+            message=message_body,
+            from_email=from_email,
+            recipient_list=[recipient_email],
+            fail_silently=False,  # Raise exceptions on failure
         )
-        return True, "Email sent successfully."
+        success_msg = f"Email sent successfully to {recipient_email}"
+        logger.info(success_msg)
+        return True, success_msg
     
     except Exception as e:
-        # This captures connection errors, SMTP issues, etc.
-        logger.error(f"Failed to send email for Order {order_id}: {str(e)}")
-        return False, f"Could not send email: {str(e)}"         
+        # Catch and log any errors (SMTP issues, connection problems, etc.)
+        error_msg = f"Failed to send email to {recipient_email}: {str(e)}"
+        logger.error(error_msg)
+        return False, error_msg         
