@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from rest_framework import generics
 from rest_framework.generics import ListAPIView, RetrieveAPIView, CreateAPIView
+from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import AllowAny
 from .models import MenuCategory, MenuItem, Table, Restaurant, ContactFormSubmission
 from .serializers import (
@@ -13,7 +14,7 @@ from .serializers import (
 )
 
 
-class MenuCategoryListView(ListAPIView):
+class MenuCategoryViewSet(ModelViewSet):
     queryset = MenuCategory.objects.all()
     serializer_class = MenuCategorySerializer
     permission_classes = [AllowAny]
