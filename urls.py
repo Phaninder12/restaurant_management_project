@@ -1,10 +1,29 @@
-from django.urls import path
-from .views import *
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import (
+    AvailableTablesAPIView,
+    DailySpecialsView,
+    MenuCategoryViewSet,
+    MenuItemReviewsView,
+    TableDetailView,
+    MenuItemListView,
+    RestaurantInfoAPIView,
+    ContactFormSubmissionCreateAPIView,
+    UserReviewCreateView,
+)
+
+router = DefaultRouter()
+router.register(r'menu-categories', MenuCategoryViewSet)
 
 urlpatterns = [
-  path('history/', OrderHistoryListView.as_view(), name='order-history'),
-  path('orders/<int:pk>/', OrderDetailAPIView.as_view(), name='order_detail_api'),
-  path('orders/<int:pk>/status/', OrderStatusUpdateView.as_view(), name='order-status-update'),
-  path('orders/<int:order_id>/status/get/', get_order_status, name='get-order-status'),
-  path('payment-methods/', PaymentMethodListView.as_view(), name='payment-methods'),
+    path('', include(router.urls)),
+    path('reviews/', UserReviewCreateView.as_view(), name='create-review'),
+    path('menu-items/<int:menu_item_id>/reviews/', MenuItemReviewsView.as_view(), name='menu-item-reviews'),
+    path('daily-specials/', DailySpecialsView.as_view(), name='daily-specials'),
+    path('restaurant-info/', RestaurantInfoAPIView.as_view(), name='restaurant-info'),
+    # Detail endpoint: e.g., /api/tables/1/
+    path('api/tables/<int:pk>/', TableDetailView.as_view(), name='table-detail'),
+    path('api/menu/', MenuItemListView.as_view(), name='menu-item-list'),
+    path('api/tables/available/', AvailableTablesAPIView.as_view(), name='available_tables_api'),
+    path('contact/', ContactFormSubmissionCreateAPIView.as_view(), name='contact-form-submit'),
 ]

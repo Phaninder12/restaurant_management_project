@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import MenuCategory, MenuItem, Ingredient, Table, Restaurant, ContactFormSubmission
+from .models import MenuCategory, MenuItem, Ingredient, Table, Restaurant, ContactFormSubmission, UserReview
 
 
 class MenuCategorySerializer(serializers.ModelSerializer):
@@ -47,3 +47,18 @@ class ContactFormSubmissionSerializer(serializers.ModelSerializer):
         model = ContactFormSubmission
         fields = ['id', 'name', 'email', 'message', 'created_at']
         read_only_fields = ['id', 'created_at']
+
+
+class UserReviewSerializer(serializers.ModelSerializer):
+    user = serializers.ReadOnlyField(source='user.username')
+    menu_item = serializers.ReadOnlyField(source='menu_item.name')
+
+    class Meta:
+        model = UserReview
+        fields = ['id', 'user', 'menu_item', 'rating', 'comment', 'review_date']
+        read_only_fields = ['id', 'review_date']
+
+    def validate_rating(self, value):
+        if not (1 <= value <= 5):
+            raise serializers.ValidationError("Rating must be between 1 and 5.")
+        return value
