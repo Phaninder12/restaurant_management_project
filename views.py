@@ -59,8 +59,7 @@ class OrderDetailAPIView(generics.RetrieveAPIView):
 
     def delete(self, request, *args, **kwargs):
         order = self.get_object()
-        cancelled_status, _ = OrderStatus.objects.get_or_create(name='Cancelled')
-        order.status = cancelled_status
+        order.status = 'cancelled'
         order.save(update_fields=['status', 'updated_at'])
         serializer = self.get_serializer(order)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -77,7 +76,7 @@ class PaymentMethodListView(generics.ListAPIView):
 class OrderStatusUpdateView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def put(self, request, pk):
+    def post(self, request, pk):
         try:
             order = Order.objects.get(pk=pk)
         except Order.DoesNotExist:
@@ -87,9 +86,8 @@ class OrderStatusUpdateView(APIView):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        new_status_name = serializer.validated_data['status']
-        order_status, created = OrderStatus.objects.get_or_create(name=new_status_name)
-        order.status = order_status
+        new_status = serializer.validated_data['status']
+        order.status = new_status
         order.save(update_fields=['status', 'updated_at'])
 
-        return Response({'message': f'Order status updated to {new_status_name}'}, status=status.HTTP_200_OK)
+        return Response({'message': f'Order status updated to {new_status}'}, status=status.HTTP_200_OK)

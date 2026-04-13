@@ -12,7 +12,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
 class OrderSerializer(serializers.ModelSerializer):
     customer_name = serializers.ReadOnlyField(source='customer.username')
-    status = serializers.ReadOnlyField(source='status.name')
+    status = serializers.CharField(read_only=True)
 
     class Meta:
         model = Order
@@ -37,7 +37,7 @@ class OrderStatusUpdateSerializer(serializers.Serializer):
     status = serializers.CharField(max_length=50)
 
     def validate_status(self, value):
-        allowed_statuses = ['pending', 'processing', 'completed', 'cancelled']
+        allowed_statuses = ['pending', 'processing', 'delivered', 'cancelled']
         if value not in allowed_statuses:
             raise serializers.ValidationError(f"Status must be one of: {', '.join(allowed_statuses)}")
         return value

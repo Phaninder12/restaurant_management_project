@@ -38,14 +38,21 @@ class PaymentMethod(models.Model):
 class OrderManager(models.Manager):
     def get_active_orders(self):
         return self.filter(
-            Q(status__name='pending') | Q(status__name='processing')
+            Q(status='pending') | Q(status='processing')
         )
 
     def get_orders_by_status(self, status_name):
-        return self.filter(status__name=status_name)
+        return self.filter(status=status_name)
 
 
 class Order(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('processing', 'Processing'),
+        ('delivered', 'Delivered'),
+        ('cancelled', 'Cancelled'),
+    ]
+    
     order_id = models.CharField(max_length=12, unique=True, editable=False, null=True, blank=True)
     customer = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -54,12 +61,10 @@ class Order(models.Model):
         null=True,
         blank=True,
     )
-    status = models.ForeignKey(
-        OrderStatus,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='orders',
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='pending',
     )
     applied_coupon = models.ForeignKey(
         Coupon,
