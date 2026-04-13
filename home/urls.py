@@ -4,6 +4,7 @@ from .views import (
     AvailableTablesAPIView,
     DailySpecialsView,
     MenuCategoryViewSet,
+    MenuCategoryNameListView,
     MenuItemReviewsView,
     TableDetailView,
     MenuItemListView,
@@ -22,6 +23,7 @@ urlpatterns = [
     path('reviews/', UserReviewCreateView.as_view(), name='create-review'),
     path('menu-items/<int:menu_item_id>/reviews/', MenuItemReviewsView.as_view(), name='menu-item-reviews'),
     path('menu-items/<int:menu_item_id>/availability/', update_menu_item_availability, name='update-menu-item-availability'),
+    path('menu-categories/names/', MenuCategoryNameListView.as_view(), name='menu-category-names'),
     path('daily-specials/', DailySpecialsView.as_view(), name='daily-specials'),
     path('restaurant-info/', get_restaurant_info, name='restaurant-info'),
     # Detail endpoint: e.g., /api/tables/1/
