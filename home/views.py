@@ -1,17 +1,65 @@
-from rest_framework.generics import ListAPIView # type: ignore
-from .models import MenuCategory
-from products.models import Item  # Changed MenuItem to Item
-from .serializers import MenuCategorySerializer, MenuItemSerializer  # Changed MenuItemSerializer to ItemSerializer
+from django.shortcuts import render
+from rest_framework import generics
+from rest_framework.generics import ListAPIView, RetrieveAPIView, CreateAPIView
+from rest_framework.permissions import AllowAny
+from .models import MenuCategory, MenuItem, Table, Restaurant, ContactFormSubmission
+from .serializers import (
+    MenuCategorySerializer,
+    MenuItemSerializer,
+    MenuItemIngredientsSerializer,
+    TableSerializer,
+    RestaurantSerializer,
+    ContactFormSubmissionSerializer,
+)
 
-# Existing view for categories
+
 class MenuCategoryListView(ListAPIView):
     queryset = MenuCategory.objects.all()
     serializer_class = MenuCategorySerializer
+    permission_classes = [AllowAny]
 
-# New view for featured items
-class FeaturedMenuItemView(ListAPIView):
+
+class MenuItemIngredientsView(RetrieveAPIView):
+    queryset = MenuItem.objects.all()
+    serializer_class = MenuItemIngredientsSerializer
+    permission_classes = [AllowAny]
+
+
+def home_page(request):
+    featured_dishes = MenuItem.objects.get_top_selling_items(3)
+    return render(request, 'home/index.html', {'featured_dishes': featured_dishes})
+
+
+class TableDetailView(RetrieveAPIView):
+    queryset = Table.objects.all()
+    serializer_class = TableSerializer
+    permission_classes = [AllowAny]
+
+
+class ContactFormSubmissionCreateAPIView(CreateAPIView):
+    queryset = ContactFormSubmission.objects.all()
+    serializer_class = ContactFormSubmissionSerializer
+    permission_classes = [AllowAny]
+
+
+class RestaurantInfoAPIView(generics.ListAPIView):
+    queryset = Restaurant.objects.all()
+    serializer_class = RestaurantSerializer
+    permission_classes = [AllowAny]
+
+
+class MenuItemListView(generics.ListAPIView):
     serializer_class = MenuItemSerializer
+    permission_classes = [AllowAny]
 
     def get_queryset(self):
-        # Using Item model and filtering by is_featured
-        return Item.objects.filter(is_featured=True) 
+        return MenuItem.objects.all()
+
+
+class AvailableTablesAPIView(generics.ListAPIView):
+    serializer_class = TableSerializer
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        return Table.objects.filter(is_available=True)
+       

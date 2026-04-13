@@ -88,5 +88,15 @@ class DailyOperatingHours(models.Model):
     close_time = models.TimeField()
 
     def __str__(self):
-        return f"{self.day}: {self.open_time} - {self.close_time}"  
+        return f"{self.day}: {self.open_time} - {self.close_time}"
+
+
+class ContactFormSubmission(models.Model):
+    name = models.CharField(max_length=255)
+    email = models.EmailField()
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"ContactFormSubmission from {self.name} <{self.email}>"
     

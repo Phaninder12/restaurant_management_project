@@ -1,6 +1,6 @@
 from rest_framework.test import APITestCase # type: ignore
 from rest_framework import status # type: ignore
-from home.models import Restaurant
+from home.models import Restaurant, ContactFormSubmission
 
 class RestaurantInfoAPITest(APITestCase):
     
@@ -26,3 +26,18 @@ class RestaurantInfoAPITest(APITestCase):
         
         self.assertEqual(data['name'], 'Test Restaurant')
         self.assertEqual(data['address'], '123 Test St')
+
+    def test_contact_form_submission_creates_record(self):
+        payload = {
+            'name': 'Jane Doe',
+            'email': 'jane@example.com',
+            'message': 'I would like to know your opening hours.'
+        }
+
+        response = self.client.post('/api/contact/', payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(ContactFormSubmission.objects.count(), 1)
+        submission = ContactFormSubmission.objects.first()
+        self.assertEqual(submission.name, 'Jane Doe')
+        self.assertEqual(submission.email, 'jane@example.com')
+        self.assertEqual(submission.message, 'I would like to know your opening hours.')
