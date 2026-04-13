@@ -1,43 +1,49 @@
 from rest_framework import serializers
-from .models import Order, OrderItem, PaymentMethod
+from .models import MenuCategory, MenuItem, Ingredient, Table, Restaurant, ContactFormSubmission
 
 
-class OrderItemSerializer(serializers.ModelSerializer):
-    item_name = serializers.ReadOnlyField(source='item.item_name')
+class MenuCategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MenuCategory
+        fields = ['id', 'name']
+
+
+class IngredientSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Ingredient
+        fields = ['id', 'name', 'is_allergen']
+
+
+class MenuItemSerializer(serializers.ModelSerializer):
+    ingredients = IngredientSerializer(many=True, read_only=True)
 
     class Meta:
-        model = OrderItem
-        fields = ['item_name', 'quantity', 'price_at_time']
+        model = MenuItem
+        fields = ['id', 'name', 'description', 'price', 'ingredients']
 
 
-class OrderSerializer(serializers.ModelSerializer):
-    customer_name = serializers.ReadOnlyField(source='customer.username')
-    status = serializers.CharField(read_only=True)
+class MenuItemIngredientsSerializer(serializers.ModelSerializer):
+    ingredients = IngredientSerializer(many=True, read_only=True)
 
     class Meta:
-        model = Order
-        fields = ['id', 'order_id', 'customer_name', 'created_at', 'total_price', 'discount_amount', 'final_price', 'status']
+        model = MenuItem
+        fields = ['id', 'name', 'ingredients']
 
 
-class OrderDetailSerializer(OrderSerializer):
-    items = OrderItemSerializer(many=True, read_only=True)
-
-    class Meta(OrderSerializer.Meta):
-        model = Order
-        fields = OrderSerializer.Meta.fields + ['items', 'applied_coupon']
-
-
-class PaymentMethodSerializer(serializers.ModelSerializer):
+class TableSerializer(serializers.ModelSerializer):
     class Meta:
-        model = PaymentMethod
-        fields = ['id', 'name', 'description', 'is_active']
+        model = Table
+        fields = ['id', 'number', 'capacity', 'is_available']
 
 
-class OrderStatusUpdateSerializer(serializers.Serializer):
-    status = serializers.CharField(max_length=50)
+class RestaurantSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Restaurant
+        fields = ['id', 'name', 'address', 'has_delivery']
 
-    def validate_status(self, value):
-        allowed_statuses = ['pending', 'processing', 'delivered', 'cancelled']
-        if value not in allowed_statuses:
-            raise serializers.ValidationError(f"Status must be one of: {', '.join(allowed_statuses)}")
-        return value
+
+class ContactFormSubmissionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ContactFormSubmission
+        fields = ['id', 'name', 'email', 'message', 'created_at']
+        read_only_fields = ['id', 'created_at']
