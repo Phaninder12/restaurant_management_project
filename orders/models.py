@@ -91,14 +91,24 @@ class Order(models.Model):
     def calculate_total(self):
         """
         Iterates through the items in the order and sums their prices 
-        multiplied by quantity to get a grand total.
+        multiplied by quantity to get a grand total, taking into account discounts.
         """
+        from .utils import calculate_discount
         # Sum up the cost of all related OrderItem objects
         total = sum(item.get_cost() for item in self.items.all())
         
-        # Convert to Decimal to ensure precision and return
+        # Convert to Decimal to ensure precision
         self.total_price = Decimal(total)
-        return self.total_price
+        
+        # Calculate discount
+        self.discount_amount = calculate_discount(self)
+        
+        # Calculate final price
+        self.final_price = self.total_price - self.discount_amount
+        if self.final_price < 0:
+            self.final_price = Decimal('0.00')
+        
+        return self.final_price
 
     def calculate_prices(self):
         """Recalculate total, discount, and final prices for the order."""
