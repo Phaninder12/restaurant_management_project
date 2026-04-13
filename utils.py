@@ -166,4 +166,40 @@ def calculate_discount(order):
         discount_percentage = order.applied_coupon.discount_percentage
         discount = (order.total_price * discount_percentage) / Decimal('100')
         return discount
-    return Decimal('0.00')         
+    return Decimal('0.00')
+
+
+def update_order_status(order_id, new_status):
+    """
+    Updates the status of an order given its ID and new status.
+    
+    Args:
+        order_id (int): The ID of the order to update.
+        new_status (str): The new status to set for the order.
+    
+    Returns:
+        bool: True if the update was successful, False otherwise.
+    
+    Raises:
+        ValueError: If the order is not found or status is invalid.
+    """
+    from .models import Order
+    
+    try:
+        order = Order.objects.get(pk=order_id)
+    except Order.DoesNotExist:
+        logger.error(f"Order with ID {order_id} not found.")
+        raise ValueError(f"Order with ID {order_id} not found.")
+    
+    # Validate status
+    valid_statuses = ['pending', 'processing', 'delivered', 'cancelled']
+    if new_status not in valid_statuses:
+        logger.error(f"Invalid status '{new_status}' for order {order_id}. Valid statuses: {valid_statuses}")
+        raise ValueError(f"Invalid status '{new_status}'. Must be one of: {valid_statuses}")
+    
+    old_status = order.status
+    order.status = new_status
+    order.save(update_fields=['status', 'updated_at'])
+    
+    logger.info(f"Order {order_id} status updated from '{old_status}' to '{new_status}'.")
+    return True         
