@@ -51,6 +51,22 @@ class RestaurantInfoAPIView(generics.ListAPIView):
     permission_classes = [AllowAny]
 
 
+@api_view(['GET'])
+def get_restaurant_info(request):
+    """
+    Retrieve information about the restaurant.
+    """
+    try:
+        restaurant = Restaurant.objects.first()
+        if not restaurant:
+            return Response({'error': 'No restaurant information available'}, status=status.HTTP_404_NOT_FOUND)
+        
+        serializer = RestaurantSerializer(restaurant)
+        return Response(serializer.data)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 class MenuItemListView(generics.ListAPIView):
     serializer_class = MenuItemSerializer
     permission_classes = [AllowAny]

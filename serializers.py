@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import MenuCategory, MenuItem, Ingredient, Table, Restaurant, ContactFormSubmission, UserReview
+from .models import MenuCategory, MenuItem, Ingredient, Table, Restaurant, ContactFormSubmission, UserReview, DailyOperatingHours
 
 
 class MenuCategorySerializer(serializers.ModelSerializer):
@@ -46,9 +46,22 @@ class TableSerializer(serializers.ModelSerializer):
 
 
 class RestaurantSerializer(serializers.ModelSerializer):
+    operating_hours = serializers.SerializerMethodField()
+
     class Meta:
         model = Restaurant
-        fields = ['id', 'name', 'address', 'has_delivery']
+        fields = ['id', 'name', 'address', 'phone_number', 'has_delivery', 'operating_days', 'operating_hours']
+
+    def get_operating_hours(self, obj):
+        from .models import DailyOperatingHours
+        hours = DailyOperatingHours.objects.all()
+        return DailyOperatingHoursSerializer(hours, many=True).data
+
+
+class DailyOperatingHoursSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DailyOperatingHours
+        fields = ['day', 'open_time', 'close_time']
 
 
 class ContactFormSubmissionSerializer(serializers.ModelSerializer):
