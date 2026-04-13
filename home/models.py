@@ -38,6 +38,7 @@ class MenuItem(models.Model):
     cuisine = models.ForeignKey(Cuisine, on_delete=models.SET_NULL, null=True, blank=True, related_name='menu_items')
     ingredients = models.ManyToManyField('Ingredient', related_name='menu_items', blank=True)
     is_daily_special = models.BooleanField(default=False)
+    is_available = models.BooleanField(default=True)
 
     objects = MenuItemManager()
 
