@@ -11,6 +11,7 @@ from .views import (
     ContactFormSubmissionCreateAPIView,
     UserReviewCreateView,
     update_menu_item_availability,
+    get_restaurant_info,
 )
 
 router = DefaultRouter()
@@ -22,7 +23,7 @@ urlpatterns = [
     path('menu-items/<int:menu_item_id>/reviews/', MenuItemReviewsView.as_view(), name='menu-item-reviews'),
     path('menu-items/<int:menu_item_id>/availability/', update_menu_item_availability, name='update-menu-item-availability'),
     path('daily-specials/', DailySpecialsView.as_view(), name='daily-specials'),
-    path('restaurant-info/', RestaurantInfoAPIView.as_view(), name='restaurant-info'),
+    path('restaurant-info/', get_restaurant_info, name='restaurant-info'),
     # Detail endpoint: e.g., /api/tables/1/
     path('api/tables/<int:pk>/', TableDetailView.as_view(), name='table-detail'),
     path('api/menu/', MenuItemListView.as_view(), name='menu-item-list'),

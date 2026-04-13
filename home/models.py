@@ -49,6 +49,7 @@ class MenuItem(models.Model):
 class Restaurant(models.Model):
     name = models.CharField(max_length=255)
     address = models.TextField()
+    phone_number = models.CharField(max_length=20, blank=True, null=True)
     has_delivery = models.BooleanField(default=False)
     operating_days = models.CharField(
         max_length=100,
