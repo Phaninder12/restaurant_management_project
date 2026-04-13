@@ -135,4 +135,94 @@ class LoyaltyProgram(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class Reservation(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='reservations', null=True, blank=True)
+    table = models.ForeignKey(Table, on_delete=models.SET_NULL, null=True, blank=True, related_name='reservations')
+    reservation_date = models.DateField()
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+    party_size = models.PositiveIntegerField(default=1)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['reservation_date', 'start_time']
+
+    def __str__(self):
+        return f"Reservation on {self.reservation_date} from {self.start_time} to {self.end_time}"
+
+    @classmethod
+    def find_available_slots(cls, reservation_date, start_time, end_time, table_id=None, slot_length_minutes=30):
+        """
+        Find available reservation slots for a date/time range.
+
+        Args:
+            reservation_date (datetime.date): The date to search.
+            start_time (datetime.time or str): The earliest slot start time.
+            end_time (datetime.time or str): The latest slot end time.
+            table_id (int, optional): Restrict availability to a particular table.
+            slot_length_minutes (int): Length of each slot in minutes.
+
+        Returns:
+            list[dict]: Available slots as dictionaries with 'start' and 'end' times.
+        """
+        if isinstance(start_time, str):
+            start_time = datetime.datetime.strptime(start_time, '%H:%M').time()
+        if isinstance(end_time, str):
+            end_time = datetime.datetime.strptime(end_time, '%H:%M').time()
+
+        if start_time >= end_time:
+            raise ValueError('start_time must be before end_time')
+
+        queryset = cls.objects.filter(reservation_date=reservation_date)
+        if table_id is not None:
+            queryset = queryset.filter(table_id=table_id)
+
+        overlapping_reservations = queryset.filter(
+            start_time__lt=end_time,
+            end_time__gt=start_time,
+        ).order_by('start_time')
+
+        # Build a timeline of occupied intervals.
+        occupied = []
+        for reservation in overlapping_reservations:
+            occupied_start = max(reservation.start_time, start_time)
+            occupied_end = min(reservation.end_time, end_time)
+            if occupied_start < occupied_end:
+                occupied.append((occupied_start, occupied_end))
+
+        available_slots = []
+        current_start = datetime.datetime.combine(datetime.date.min, start_time)
+        range_end = datetime.datetime.combine(datetime.date.min, end_time)
+
+        for occupied_start, occupied_end in occupied:
+            occupied_dt_start = datetime.datetime.combine(datetime.date.min, occupied_start)
+            occupied_dt_end = datetime.datetime.combine(datetime.date.min, occupied_end)
+
+            if current_start + datetime.timedelta(minutes=slot_length_minutes) <= occupied_dt_start:
+                slot_end = occupied_dt_start
+                available_slots.extend(cls._split_time_range(current_start, slot_end, slot_length_minutes))
+
+            current_start = max(current_start, occupied_dt_end)
+            if current_start >= range_end:
+                break
+
+        if current_start + datetime.timedelta(minutes=slot_length_minutes) <= range_end:
+            available_slots.extend(cls._split_time_range(current_start, range_end, slot_length_minutes))
+
+        return available_slots
+
+    @staticmethod
+    def _split_time_range(start_dt, end_dt, slot_length_minutes):
+        slots = []
+        while start_dt + datetime.timedelta(minutes=slot_length_minutes) <= end_dt:
+            slot_end = start_dt + datetime.timedelta(minutes=slot_length_minutes)
+            slots.append({
+                'start': start_dt.time().strftime('%H:%M'),
+                'end': slot_end.time().strftime('%H:%M'),
+            })
+            start_dt = slot_end
+        return slots
     
