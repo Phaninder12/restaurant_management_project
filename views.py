@@ -7,6 +7,7 @@ from rest_framework.decorators import api_view
 from .models import MenuCategory, MenuItem, Table, Restaurant, ContactFormSubmission, UserReview
 from .serializers import (
     MenuCategorySerializer,
+    MenuCategoryNameSerializer,
     MenuItemSerializer,
     MenuItemIngredientsSerializer,
     TableSerializer,
@@ -19,6 +20,12 @@ from .serializers import (
 class MenuCategoryViewSet(ModelViewSet):
     queryset = MenuCategory.objects.all()
     serializer_class = MenuCategorySerializer
+    permission_classes = [AllowAny]
+
+
+class MenuCategoryNameListView(ListAPIView):
+    queryset = MenuCategory.objects.all()
+    serializer_class = MenuCategoryNameSerializer
     permission_classes = [AllowAny]
 
 
