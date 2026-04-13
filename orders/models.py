@@ -43,6 +43,7 @@ class OrderManager(models.Manager):
 
 
 class Order(models.Model):
+    order_id = models.CharField(max_length=12, unique=True, editable=False, null=True, blank=True)
     customer = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -73,7 +74,7 @@ class Order(models.Model):
     objects = OrderManager()
 
     def __str__(self):
-        return f"Order {self.id}"
+        return f"Order {self.order_id or self.id}"
 
     @property
     def customer_name(self):
@@ -91,6 +92,12 @@ class Order(models.Model):
         self.total_price = Decimal(total)
         # Note: You can call self.save() here if you want to persist the total
         return self.total_price
+
+    def save(self, *args, **kwargs):
+        if not self.order_id:
+            from .utils import generate_unique_order_id
+            self.order_id = generate_unique_order_id()
+        super().save(*args, **kwargs)
 
 
 class OrderItem(models.Model):
