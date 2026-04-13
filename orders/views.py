@@ -1,6 +1,7 @@
-from rest_framework import generics # type: ignore
+from rest_framework import generics, status # type: ignore
 from rest_framework.permissions import IsAuthenticated # type: ignore
-from .models import Order
+from rest_framework.response import Response # type: ignore
+from .models import Order, OrderStatus
 from .serializers import OrderSerializer,OrderDetailSerializer
 from django.shortcuts import render, redirect # type: ignore
 from .utils import is_valid_email, send_email 
@@ -12,7 +13,7 @@ class OrderHistoryListView(generics.ListAPIView):
 
     def get_queryset(self):
         # This restricts the results to the currently logged-in user
-        return Order.objects.filter(user=self.request.user).order_by('-created_at')
+        return Order.objects.filter(customer=self.request.user).order_by('-created_at')
 
 # 2. This is a Function-Based View for your HTML Form (Moved outside the class)
 def place_order_view(request):
@@ -53,4 +54,12 @@ class OrderDetailAPIView(generics.RetrieveAPIView):
 
     def get_queryset(self):
         # Users can only retrieve orders they placed themselves
-        return Order.objects.filter(user=self.request.user)
+        return Order.objects.filter(customer=self.request.user)
+
+    def delete(self, request, *args, **kwargs):
+        order = self.get_object()
+        cancelled_status, _ = OrderStatus.objects.get_or_create(name='Cancelled')
+        order.status = cancelled_status
+        order.save(update_fields=['status', 'updated_at'])
+        serializer = self.get_serializer(order)
+        return Response(serializer.data, status=status.HTTP_200_OK)

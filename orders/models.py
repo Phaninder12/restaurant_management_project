@@ -90,8 +90,15 @@ class Order(models.Model):
         
         # Convert to Decimal to ensure precision and return
         self.total_price = Decimal(total)
-        # Note: You can call self.save() here if you want to persist the total
         return self.total_price
+
+    def calculate_prices(self):
+        """Recalculate total, discount, and final prices for the order."""
+        self.calculate_total()
+        self.final_price = self.total_price - self.discount_amount
+        if self.final_price < 0:
+            self.final_price = Decimal('0.00')
+        return self.final_price
 
     def save(self, *args, **kwargs):
         if not self.order_id:
