@@ -2,6 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     AvailableTablesAPIView,
+    DailySpecialsView,
     MenuCategoryViewSet,
     TableDetailView,
     MenuItemListView,
@@ -14,6 +15,7 @@ router.register(r'menu-categories', MenuCategoryViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('daily-specials/', DailySpecialsView.as_view(), name='daily-specials'),
     path('restaurant-info/', RestaurantInfoAPIView.as_view(), name='restaurant-info'),
     # Detail endpoint: e.g., /api/tables/1/
     path('api/tables/<int:pk>/', TableDetailView.as_view(), name='table-detail'),
