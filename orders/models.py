@@ -41,6 +41,9 @@ class OrderManager(models.Manager):
             Q(status__name='pending') | Q(status__name='processing')
         )
 
+    def get_orders_by_status(self, status_name):
+        return self.filter(status__name=status_name)
+
 
 class Order(models.Model):
     order_id = models.CharField(max_length=12, unique=True, editable=False, null=True, blank=True)
