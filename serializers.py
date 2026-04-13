@@ -19,7 +19,7 @@ class MenuItemSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = MenuItem
-        fields = ['id', 'name', 'description', 'price', 'cuisine', 'ingredients', 'is_daily_special']
+        fields = ['id', 'name', 'description', 'price', 'cuisine', 'ingredients', 'is_daily_special', 'is_available']
 
 
 class MenuItemIngredientsSerializer(serializers.ModelSerializer):
@@ -28,6 +28,15 @@ class MenuItemIngredientsSerializer(serializers.ModelSerializer):
     class Meta:
         model = MenuItem
         fields = ['id', 'name', 'ingredients']
+
+
+class MenuItemAvailabilitySerializer(serializers.Serializer):
+    is_available = serializers.BooleanField()
+
+    def validate_is_available(self, value):
+        if not isinstance(value, bool):
+            raise serializers.ValidationError("is_available must be a boolean value.")
+        return value
 
 
 class TableSerializer(serializers.ModelSerializer):

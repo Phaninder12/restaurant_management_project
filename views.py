@@ -1,8 +1,9 @@
 from django.shortcuts import render
-from rest_framework import generics
+from rest_framework import generics, status
 from rest_framework.generics import ListAPIView, RetrieveAPIView, CreateAPIView
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.decorators import api_view
 from .models import MenuCategory, MenuItem, Table, Restaurant, ContactFormSubmission, UserReview
 from .serializers import (
     MenuCategorySerializer,
@@ -89,4 +90,29 @@ class MenuItemReviewsView(generics.ListAPIView):
     def get_queryset(self):
         menu_item_id = self.kwargs['menu_item_id']
         return UserReview.objects.filter(menu_item_id=menu_item_id).order_by('-review_date')
+
+
+@api_view(['PATCH'])
+def update_menu_item_availability(request, menu_item_id):
+    """
+    Update the availability status of a menu item.
+    """
+    try:
+        menu_item = MenuItem.objects.get(pk=menu_item_id)
+    except MenuItem.DoesNotExist:
+        return Response({'error': 'Menu item not found'}, status=status.HTTP_404_NOT_FOUND)
+    
+    serializer = MenuItemAvailabilitySerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    is_available = serializer.validated_data['is_available']
+    menu_item.is_available = is_available
+    menu_item.save(update_fields=['is_available', 'updated_at'])
+    
+    return Response({
+        'message': f'Menu item availability updated to {"available" if is_available else "unavailable"}',
+        'menu_item_id': menu_item_id,
+        'is_available': is_available
+    })
        
