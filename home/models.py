@@ -35,6 +35,7 @@ class MenuItem(models.Model):
     name = models.CharField(max_length=200)
     description = models.TextField()
     price = models.DecimalField(max_digits=10, decimal_places=2)
+    discount_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     cuisine = models.ForeignKey(Cuisine, on_delete=models.SET_NULL, null=True, blank=True, related_name='menu_items')
     ingredients = models.ManyToManyField('Ingredient', related_name='menu_items', blank=True)
     is_daily_special = models.BooleanField(default=False)
@@ -44,6 +45,29 @@ class MenuItem(models.Model):
 
     def __str__(self):
         return self.name
+
+    def get_final_price(self):
+        """
+        Return the final menu item price after applying any discount.
+
+        The discount is calculated as a percentage of the base price.
+        If the configured discount is invalid or zero, the base price is returned.
+        """
+        from decimal import Decimal
+
+        try:
+            discount = Decimal(self.discount_percentage)
+        except Exception:
+            discount = Decimal('0')
+
+        if discount <= 0:
+            return float(self.price)
+
+        if discount > 100:
+            discount = Decimal('100')
+
+        final_price = self.price * (Decimal('100') - discount) / Decimal('100')
+        return float(final_price.quantize(Decimal('0.01')))
 
 
 class Restaurant(models.Model):
