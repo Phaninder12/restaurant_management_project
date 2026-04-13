@@ -2,10 +2,47 @@ from rest_framework import generics, status # type: ignore
 from rest_framework.permissions import IsAuthenticated, AllowAny # type: ignore
 from rest_framework.response import Response # type: ignore
 from rest_framework.views import APIView # type: ignore
+from rest_framework.decorators import api_view
 from .models import Order, OrderStatus, PaymentMethod
 from .serializers import OrderSerializer,OrderDetailSerializer, PaymentMethodSerializer, OrderStatusUpdateSerializer
 from django.shortcuts import render, redirect # type: ignore
-from .utils import is_valid_email, send_email 
+from .utils import is_valid_email, send_email
+
+
+class OrderStatusUpdateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        try:
+            order = Order.objects.get(pk=pk)
+        except Order.DoesNotExist:
+            return Response({'error': 'Order not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = OrderStatusUpdateSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        new_status = serializer.validated_data['status']
+        order.status = new_status
+        order.save(update_fields=['status', 'updated_at'])
+
+        return Response({'message': f'Order status updated to {new_status}'}, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+def get_order_status(request, order_id):
+    """
+    Retrieve the status of an order by its ID.
+    """
+    try:
+        order = Order.objects.get(pk=order_id)
+    except Order.DoesNotExist:
+        return Response({'error': 'Order not found'}, status=status.HTTP_404_NOT_FOUND)
+    
+    return Response({
+        'order_id': order.order_id or order.id,
+        'status': order.status
+    }) 
 
 # 1. This is a Class-Based View for your API
 class OrderHistoryListView(generics.ListAPIView):
