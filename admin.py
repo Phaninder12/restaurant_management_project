@@ -1,5 +1,5 @@
 from django.contrib import admin # type: ignore
-from .models import Order, OrderItem, Coupon, OrderStatus,LoyaltyProgram
+from .models import Order, OrderItem, Coupon, OrderStatus, PaymentMethod
 
 # 1. Inline for Order Items
 class OrderItemInline(admin.TabularInline):
@@ -55,10 +55,12 @@ class OrderAdmin(admin.ModelAdmin):
             return []
         return [OrderItemInline]
     
-@admin.register(LoyaltyProgram)
-class LoyaltyProgramAdmin(admin.ModelAdmin):
-    list_display = ('name', 'points_required', 'discount_percentage')
-    search_fields = ('name',)    
+@admin.register(PaymentMethod)
+class PaymentMethodAdmin(admin.ModelAdmin):
+    list_display = ('name', 'is_active', 'description')
+    list_filter = ('is_active',)
+    search_fields = ('name', 'description')
+    ordering = ('name',)
 
 # 4. Register remaining models
 admin.site.register(Coupon)
