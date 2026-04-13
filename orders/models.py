@@ -26,6 +26,15 @@ class Coupon(models.Model):
         return self.code
 
 
+class PaymentMethod(models.Model):
+    name = models.CharField(max_length=50, unique=True)
+    description = models.TextField(blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.name
+
+
 class OrderManager(models.Manager):
     def get_active_orders(self):
         return self.filter(
