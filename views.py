@@ -1,8 +1,9 @@
 from rest_framework import generics, status # type: ignore
 from rest_framework.permissions import IsAuthenticated, AllowAny # type: ignore
 from rest_framework.response import Response # type: ignore
+from rest_framework.views import APIView # type: ignore
 from .models import Order, OrderStatus, PaymentMethod
-from .serializers import OrderSerializer,OrderDetailSerializer, PaymentMethodSerializer
+from .serializers import OrderSerializer,OrderDetailSerializer, PaymentMethodSerializer, OrderStatusUpdateSerializer
 from django.shortcuts import render, redirect # type: ignore
 from .utils import is_valid_email, send_email 
 
@@ -71,3 +72,24 @@ class PaymentMethodListView(generics.ListAPIView):
 
     def get_queryset(self):
         return PaymentMethod.objects.filter(is_active=True)
+
+
+class OrderStatusUpdateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request, pk):
+        try:
+            order = Order.objects.get(pk=pk)
+        except Order.DoesNotExist:
+            return Response({'error': 'Order not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = OrderStatusUpdateSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        new_status_name = serializer.validated_data['status']
+        order_status, created = OrderStatus.objects.get_or_create(name=new_status_name)
+        order.status = order_status
+        order.save(update_fields=['status', 'updated_at'])
+
+        return Response({'message': f'Order status updated to {new_status_name}'}, status=status.HTTP_200_OK)

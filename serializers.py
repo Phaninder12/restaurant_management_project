@@ -31,3 +31,13 @@ class PaymentMethodSerializer(serializers.ModelSerializer):
     class Meta:
         model = PaymentMethod
         fields = ['id', 'name', 'description', 'is_active']
+
+
+class OrderStatusUpdateSerializer(serializers.Serializer):
+    status = serializers.CharField(max_length=50)
+
+    def validate_status(self, value):
+        allowed_statuses = ['pending', 'processing', 'completed', 'cancelled']
+        if value not in allowed_statuses:
+            raise serializers.ValidationError(f"Status must be one of: {', '.join(allowed_statuses)}")
+        return value
