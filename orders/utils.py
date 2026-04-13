@@ -6,6 +6,7 @@ from django.core.exceptions import ValidationError # type: ignore
 import logging
 from django.core.mail import send_mail # type: ignore
 from django.conf import settings # type: ignore
+import datetime
 # Set up logging to capture errors
 logger = logging.getLogger(__name__)
 
@@ -131,4 +132,20 @@ def send_email(recipient_email, subject, message_body):
         # Catch and log any errors (SMTP issues, connection problems, etc.)
         error_msg = f"Failed to send email to {recipient_email}: {str(e)}"
         logger.error(error_msg)
-        return False, error_msg         
+        return False, error_msg
+
+
+def format_datetime(dt):
+    """
+    Formats a datetime object into a user-friendly string.
+    
+    Args:
+        dt (datetime.datetime or None): The datetime object to format.
+        
+    Returns:
+        str: Formatted string like 'January 1, 2023 at 10:30 AM', or empty string if dt is None.
+    """
+    if dt is None:
+        return ""
+    
+    return f"{dt.strftime('%B')} {dt.day}, {dt.year} at {dt.strftime('%I:%M %p')}"         
