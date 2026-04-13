@@ -1,8 +1,8 @@
 from rest_framework import generics, status # type: ignore
-from rest_framework.permissions import IsAuthenticated # type: ignore
+from rest_framework.permissions import IsAuthenticated, AllowAny # type: ignore
 from rest_framework.response import Response # type: ignore
-from .models import Order, OrderStatus
-from .serializers import OrderSerializer,OrderDetailSerializer
+from .models import Order, OrderStatus, PaymentMethod
+from .serializers import OrderSerializer,OrderDetailSerializer, PaymentMethodSerializer
 from django.shortcuts import render, redirect # type: ignore
 from .utils import is_valid_email, send_email 
 
@@ -63,3 +63,11 @@ class OrderDetailAPIView(generics.RetrieveAPIView):
         order.save(update_fields=['status', 'updated_at'])
         serializer = self.get_serializer(order)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class PaymentMethodListView(generics.ListAPIView):
+    serializer_class = PaymentMethodSerializer
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        return PaymentMethod.objects.filter(is_active=True)

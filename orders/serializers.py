@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Order, OrderItem
+from .models import Order, OrderItem, PaymentMethod
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
@@ -25,3 +25,9 @@ class OrderDetailSerializer(OrderSerializer):
     class Meta(OrderSerializer.Meta):
         model = Order
         fields = OrderSerializer.Meta.fields + ['items', 'applied_coupon']
+
+
+class PaymentMethodSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PaymentMethod
+        fields = ['id', 'name', 'description', 'is_active']
