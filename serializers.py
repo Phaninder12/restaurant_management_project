@@ -79,7 +79,7 @@ class ContactFormSubmissionSerializer(serializers.ModelSerializer):
 
 class UserReviewSerializer(serializers.ModelSerializer):
     user = serializers.ReadOnlyField(source='user.username')
-    menu_item = serializers.ReadOnlyField(source='menu_item.name')
+    menu_item = serializers.PrimaryKeyRelatedField(queryset=MenuItem.objects.all())
 
     class Meta:
         model = UserReview
