@@ -1,143 +1,168 @@
-from rest_framework import generics, status # type: ignore
-from rest_framework.permissions import IsAuthenticated, AllowAny # type: ignore
-from rest_framework.response import Response # type: ignore
-from rest_framework.views import APIView # type: ignore
+from django.shortcuts import render
+from rest_framework import generics, status
+from rest_framework.generics import ListAPIView, RetrieveAPIView, CreateAPIView
+from rest_framework.viewsets import ModelViewSet
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.decorators import api_view
-from .models import Order, OrderStatus, PaymentMethod
-from .serializers import OrderSerializer,OrderDetailSerializer, PaymentMethodSerializer, OrderStatusUpdateSerializer
-from django.shortcuts import render, redirect # type: ignore
-from .utils import is_valid_email, send_email
+from rest_framework.response import Response
+from rest_framework.pagination import PageNumberPagination
+from .models import MenuCategory, MenuItem, Table, Restaurant, ContactFormSubmission, UserReview, DailyOperatingHours
+from .serializers import (
+    MenuCategorySerializer,
+    MenuCategoryNameSerializer,
+    MenuItemSerializer,
+    MenuItemIngredientsSerializer,
+    TableSerializer,
+    RestaurantSerializer,
+    ContactFormSubmissionSerializer,
+    UserReviewSerializer,
+    DailyOperatingHoursSerializer,
+)
 
 
-class OrderStatusUpdateView(APIView):
-    permission_classes = [IsAuthenticated]
+class MenuCategoryViewSet(ModelViewSet):
+    queryset = MenuCategory.objects.all()
+    serializer_class = MenuCategorySerializer
+    permission_classes = [AllowAny]
 
-    def post(self, request, pk):
-        try:
-            order = Order.objects.get(pk=pk)
-        except Order.DoesNotExist:
-            return Response({'error': 'Order not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        serializer = OrderStatusUpdateSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+class MenuCategoryNameListView(ListAPIView):
+    queryset = MenuCategory.objects.all()
+    serializer_class = MenuCategoryNameSerializer
+    permission_classes = [AllowAny]
 
-        new_status = serializer.validated_data['status']
-        order.status = new_status
-        order.save(update_fields=['status', 'updated_at'])
 
-        return Response({'message': f'Order status updated to {new_status}'}, status=status.HTTP_200_OK)
+class MenuItemIngredientsView(RetrieveAPIView):
+    queryset = MenuItem.objects.all()
+    serializer_class = MenuItemIngredientsSerializer
+    permission_classes = [AllowAny]
+
+
+def home_page(request):
+    featured_dishes = MenuItem.objects.get_top_selling_items(3)
+    return render(request, 'home/index.html', {'featured_dishes': featured_dishes})
+
+
+class TableDetailView(RetrieveAPIView):
+    queryset = Table.objects.all()
+    serializer_class = TableSerializer
+    permission_classes = [AllowAny]
+
+
+class ContactFormSubmissionCreateAPIView(CreateAPIView):
+    queryset = ContactFormSubmission.objects.all()
+    serializer_class = ContactFormSubmissionSerializer
+    permission_classes = [AllowAny]
+
+
+class RestaurantInfoAPIView(generics.ListAPIView):
+    queryset = Restaurant.objects.all()
+    serializer_class = RestaurantSerializer
+    permission_classes = [AllowAny]
 
 
 @api_view(['GET'])
-def get_order_status(request, order_id):
+def get_restaurant_info(request):
     """
-    Retrieve the status of an order by its ID.
+    Retrieve information about the restaurant.
     """
     try:
-        order = Order.objects.get(pk=order_id)
-    except Order.DoesNotExist:
-        return Response({'error': 'Order not found'}, status=status.HTTP_404_NOT_FOUND)
+        restaurant = Restaurant.objects.first()
+        if not restaurant:
+            return Response({'error': 'No restaurant information available'}, status=status.HTTP_404_NOT_FOUND)
+        
+        serializer = RestaurantSerializer(restaurant)
+        return Response(serializer.data)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class MenuItemListView(generics.ListAPIView):
+    serializer_class = MenuItemSerializer
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        return MenuItem.objects.all()
+
+
+class DailySpecialsView(generics.ListAPIView):
+    serializer_class = MenuItemSerializer
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        return MenuItem.objects.filter(is_daily_special=True)
+
+
+class AvailableTablesAPIView(generics.ListAPIView):
+    serializer_class = TableSerializer
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        return Table.objects.filter(is_available=True)
+
+
+class RestaurantOpeningHoursListView(generics.ListAPIView):
+    """
+    Retrieve all restaurant opening hours for each day of the week.
+    
+    Returns a list of opening hours with days and corresponding opening/closing times.
+    """
+    queryset = DailyOperatingHours.objects.all().order_by('id')
+    serializer_class = DailyOperatingHoursSerializer
+    permission_classes = [AllowAny]
+
+
+class UserReviewCreateView(generics.CreateAPIView):
+    serializer_class = UserReviewSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+
+class MenuItemReviewsView(generics.ListAPIView):
+    serializer_class = UserReviewSerializer
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        menu_item_id = self.kwargs['menu_item_id']
+        return UserReview.objects.filter(menu_item_id=menu_item_id).order_by('-review_date')
+
+
+@api_view(['PATCH'])
+def update_menu_item_availability(request, menu_item_id):
+    """
+    Update the availability status of a menu item.
+    """
+    try:
+        menu_item = MenuItem.objects.get(pk=menu_item_id)
+    except MenuItem.DoesNotExist:
+        return Response({'error': 'Menu item not found'}, status=status.HTTP_404_NOT_FOUND)
+    
+    serializer = MenuItemAvailabilitySerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    is_available = serializer.validated_data['is_available']
+    menu_item.is_available = is_available
+    menu_item.save(update_fields=['is_available', 'updated_at'])
     
     return Response({
-        'order_id': order.order_id or order.id,
-        'status': order.status
-    }) 
-
-# 1. This is a Class-Based View for your API
-class OrderHistoryListView(generics.ListAPIView):
-    serializer_class = OrderSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        # This restricts the results to the currently logged-in user
-        return Order.objects.filter(customer=self.request.user).order_by('-created_at')
-
-# 2. This is a Function-Based View for your HTML Form (Moved outside the class)
-def place_order_view(request):
-    if request.method == 'POST':
-        user_email = request.POST.get('email')
-
-        # --- VALIDATION LOGIC ---
-        if not is_valid_email(user_email):
-            # If invalid, return the user to the form with an error message
-            return render(request, 'orders/checkout.html', {
-                'error': 'Please enter a valid email address.',
-                'data': request.POST 
-            })
-        # ------------------------
-
-        # If code reaches here, the email is valid!
-        # Proceed to save the order logic here...
-        
-        # Example: Send a confirmation email
-        subject = "Order Confirmation"
-        message_body = "Thank you for your order! We have received your request and will process it shortly."
-        success, msg = send_email(user_email, subject, message_body)
-        if not success:
-            # Handle email sending failure (e.g., log it or show a message)
-            print(f"Email sending failed: {msg}")
-        
-        return redirect('order_success')
-
-    return render(request, 'orders/checkout.html')
-
-class OrderDetailAPIView(generics.RetrieveAPIView):
-    """
-    Retrieve details of a single order by its ID, 
-    restricted to the owner of the order.
-    """
-    serializer_class = OrderDetailSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        # Users can only retrieve orders they placed themselves
-        return Order.objects.filter(customer=self.request.user)
-
-    def delete(self, request, *args, **kwargs):
-        order = self.get_object()
-        order.status = 'cancelled'
-        order.save(update_fields=['status', 'updated_at'])
-        serializer = self.get_serializer(order)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        'message': f'Menu item availability updated to {"available" if is_available else "unavailable"}',
+        'menu_item_id': menu_item_id,
+        'is_available': is_available
+    })
 
 
-class PaymentMethodListView(generics.ListAPIView):
-    serializer_class = PaymentMethodSerializer
+class UserReviewPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
+
+class UserReviewListView(generics.ListAPIView):
+    queryset = UserReview.objects.all().order_by('-review_date')
+    serializer_class = UserReviewSerializer
     permission_classes = [AllowAny]
-
-    def get_queryset(self):
-        return PaymentMethod.objects.filter(is_active=True)
-
-
-class OrderStatusRetrieveView(generics.RetrieveAPIView):
-    """
-    Retrieve the status of a specific order by its unique order_id.
-    
-    This endpoint accepts a unique order ID and returns the order's 
-    current status along with other order details.
-    """
-    queryset = Order.objects.all()
-    serializer_class = OrderDetailSerializer
-    permission_classes = [AllowAny]
-    lookup_field = 'order_id'
-
-
-class OrderStatusUpdateView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request, pk):
-        try:
-            order = Order.objects.get(pk=pk)
-        except Order.DoesNotExist:
-            return Response({'error': 'Order not found'}, status=status.HTTP_404_NOT_FOUND)
-
-        serializer = OrderStatusUpdateSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-        new_status = serializer.validated_data['status']
-        order.status = new_status
-        order.save(update_fields=['status', 'updated_at'])
-
-        return Response({'message': f'Order status updated to {new_status}'}, status=status.HTTP_200_OK)
+    pagination_class = UserReviewPagination
+       
