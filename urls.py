@@ -16,6 +16,7 @@ from .views import (
     MenuItemSearchView,
     update_menu_item_availability,
     get_restaurant_info,
+    get_restaurant_opening_hours,
 )
 
 router = DefaultRouter()
@@ -32,6 +33,7 @@ urlpatterns = [
     path('menu-categories/names/', MenuCategoryNameListView.as_view(), name='menu-category-names'),
     path('daily-specials/', DailySpecialsView.as_view(), name='daily-specials'),
     path('restaurant-info/', get_restaurant_info, name='restaurant-info'),
+    path('restaurant-opening-hours/', get_restaurant_opening_hours, name='restaurant-opening-hours'),
     path('opening-hours/', RestaurantOpeningHoursListView.as_view(), name='opening-hours'),
     # Detail endpoint: e.g., /api/tables/1/
     path('tables/<int:pk>/', TableDetailView.as_view(), name='table-detail'),

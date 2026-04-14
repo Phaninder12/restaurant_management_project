@@ -81,6 +81,12 @@ class Restaurant(models.Model):
         default="Mon,Tue,Wed,Thu,Fri,Sat,Sun",
         help_text="Comma-separated days of operation (e.g., Mon,Tue,Wed)"
     )
+    opening_hours = models.CharField(
+        max_length=100,
+        default="11:00 AM - 11:00 PM (EST)",
+        blank=True,
+        help_text="Formatted restaurant opening hours, including time zone."
+    )
 
     def __str__(self):
         return self.name

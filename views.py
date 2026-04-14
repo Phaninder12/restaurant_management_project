@@ -3,7 +3,7 @@ from rest_framework import generics, status
 from rest_framework.generics import ListAPIView, RetrieveAPIView, CreateAPIView
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from .models import MenuCategory, MenuItem, Table, Restaurant, ContactFormSubmission, UserReview, DailyOperatingHours
@@ -74,6 +74,22 @@ def get_restaurant_info(request):
         
         serializer = RestaurantSerializer(restaurant)
         return Response(serializer.data)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_restaurant_opening_hours(request):
+    """
+    Retrieve the restaurant opening hours in a simple JSON format.
+    """
+    try:
+        restaurant = Restaurant.objects.first()
+        if not restaurant:
+            return Response({'error': 'No restaurant information available'}, status=status.HTTP_404_NOT_FOUND)
+
+        return Response({'opening_hours': restaurant.opening_hours})
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
