@@ -51,23 +51,18 @@ class TableSerializer(serializers.ModelSerializer):
         fields = ['id', 'number', 'capacity', 'is_available']
 
 
-class RestaurantSerializer(serializers.ModelSerializer):
-    operating_hours = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Restaurant
-        fields = ['id', 'name', 'address', 'phone_number', 'has_delivery', 'operating_days', 'operating_hours']
-
-    def get_operating_hours(self, obj):
-        from .models import DailyOperatingHours
-        hours = DailyOperatingHours.objects.all()
-        return DailyOperatingHoursSerializer(hours, many=True).data
-
-
 class DailyOperatingHoursSerializer(serializers.ModelSerializer):
     class Meta:
         model = DailyOperatingHours
         fields = ['day', 'open_time', 'close_time']
+
+
+class RestaurantSerializer(serializers.ModelSerializer):
+    operating_hours = DailyOperatingHoursSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Restaurant
+        fields = ['id', 'name', 'address', 'phone_number', 'has_delivery', 'operating_days', 'operating_hours']
 
 
 class ContactFormSubmissionSerializer(serializers.ModelSerializer):

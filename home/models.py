@@ -120,12 +120,16 @@ class DailyOperatingHours(models.Model):
         ('Saturday', 'Saturday'),
         ('Sunday', 'Sunday'),
     ]
-    day = models.CharField(max_length=10, choices=DAYS_OF_WEEK, unique=True)
+    restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE, related_name='operating_hours')
+    day = models.CharField(max_length=10, choices=DAYS_OF_WEEK)
     open_time = models.TimeField()
     close_time = models.TimeField()
 
+    class Meta:
+        unique_together = ('restaurant', 'day')
+
     def __str__(self):
-        return f"{self.day}: {self.open_time} - {self.close_time}"
+        return f"{self.restaurant.name} - {self.day}: {self.open_time} - {self.close_time}"
 
 
 class ContactFormSubmission(models.Model):
