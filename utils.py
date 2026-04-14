@@ -1,5 +1,6 @@
 from datetime import datetime
 import datetime as dt # using an alias to avoid name conflict
+import re
 from .models import MenuItem, Cuisine
 
 
@@ -65,3 +66,22 @@ def get_distinct_cuisines():
         list: A list of strings, each representing a unique cuisine name.
     """
     return list(MenuItem.objects.filter(cuisine__isnull=False).values_list('cuisine__name', flat=True).distinct())
+
+
+def validate_email(email):
+    """
+    Validate an email address using a regular expression.
+
+    Args:
+        email (str): The email address to validate.
+
+    Returns:
+        bool: True if the email is valid, False otherwise.
+    """
+    if not isinstance(email, str):
+        return False
+    
+    # Regular expression for email validation
+    email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    
+    return re.match(email_regex, email) is not None
