@@ -6,6 +6,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 from products.models import Item
 from .models import Order, OrderItem
+from .utils import calculate_discount_amount
 
 User = get_user_model()
 
@@ -54,6 +55,23 @@ class OrderModelTest(TestCase):
         empty_order = Order.objects.create(customer=self.user)
         # Using 0 as a Decimal or Integer works here, but Decimal is cleaner for money
         self.assertEqual(empty_order.calculate_total(), Decimal('0.00'))
+
+    def test_calculate_discount_amount(self):
+        """Tests that calculate_discount_amount returns the correct discount."""
+        self.assertEqual(calculate_discount_amount(Decimal('100.00'), Decimal('15')), Decimal('15.0000'))
+        self.assertEqual(calculate_discount_amount(200, 10), Decimal('20'))
+        self.assertEqual(calculate_discount_amount('50.5', '20'), Decimal('10.10'))
+
+    def test_calculate_discount_amount_invalid_inputs(self):
+        """Tests invalid inputs for calculate_discount_amount."""
+        with self.assertRaises(ValueError):
+            calculate_discount_amount('abc', 10)
+        with self.assertRaises(ValueError):
+            calculate_discount_amount(100, 'xyz')
+        with self.assertRaises(ValueError):
+            calculate_discount_amount(-100, 10)
+        with self.assertRaises(ValueError):
+            calculate_discount_amount(100, -5)
 
 
 class OrderCancelAPITest(APITestCase):
