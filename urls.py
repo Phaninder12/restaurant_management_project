@@ -25,6 +25,7 @@ urlpatterns = [
     path('', include(router.urls)),
     path('reviews/', UserReviewListView.as_view(), name='user-reviews-list'),
     path('reviews/create/', UserReviewCreateView.as_view(), name='create-review'),
+    path('menu-items/', MenuItemListView.as_view(), name='menu-item-list'),
     path('menu-items/<int:menu_item_id>/reviews/', MenuItemReviewsView.as_view(), name='menu-item-reviews'),
     path('menu-items/<int:menu_item_id>/availability/', update_menu_item_availability, name='update-menu-item-availability'),
     path('menu-items/search/', MenuItemSearchView.as_view(), name='menu-item-search'),
@@ -33,8 +34,7 @@ urlpatterns = [
     path('restaurant-info/', get_restaurant_info, name='restaurant-info'),
     path('opening-hours/', RestaurantOpeningHoursListView.as_view(), name='opening-hours'),
     # Detail endpoint: e.g., /api/tables/1/
-    path('api/tables/<int:pk>/', TableDetailView.as_view(), name='table-detail'),
-    path('api/menu/', MenuItemListView.as_view(), name='menu-item-list'),
-    path('api/tables/available/', AvailableTablesAPIView.as_view(), name='available_tables_api'),
+    path('tables/<int:pk>/', TableDetailView.as_view(), name='table-detail'),
+    path('tables/available/', AvailableTablesAPIView.as_view(), name='available_tables_api'),
     path('contact/', ContactFormSubmissionCreateAPIView.as_view(), name='contact-form-submit'),
 ]

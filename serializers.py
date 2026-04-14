@@ -22,10 +22,12 @@ class IngredientSerializer(serializers.ModelSerializer):
 
 class MenuItemSerializer(serializers.ModelSerializer):
     ingredients = IngredientSerializer(many=True, read_only=True)
+    category_name = serializers.CharField(source='category.name', read_only=True)
+    cuisine_name = serializers.CharField(source='cuisine.name', read_only=True)
 
     class Meta:
         model = MenuItem
-        fields = ['id', 'name', 'description', 'price', 'cuisine', 'ingredients', 'is_daily_special', 'is_available']
+        fields = ['id', 'name', 'description', 'price', 'category', 'category_name', 'cuisine', 'cuisine_name', 'ingredients', 'is_daily_special', 'is_available', 'discount_percentage']
 
 
 class MenuItemIngredientsSerializer(serializers.ModelSerializer):
