@@ -71,6 +71,19 @@ class MenuItem(models.Model):
         final_price = self.price * (Decimal('100') - discount) / Decimal('100')
         return float(final_price.quantize(Decimal('0.01')))
 
+    @classmethod
+    def get_by_cuisine(cls, cuisine_name):
+        """
+        Retrieve a queryset of menu items filtered by cuisine type.
+
+        Args:
+            cuisine_name (str): The name of the cuisine to filter by.
+
+        Returns:
+            QuerySet: A queryset of MenuItem objects matching the cuisine.
+        """
+        return cls.objects.filter(cuisine__name=cuisine_name)
+
 
 class Restaurant(models.Model):
     name = models.CharField(max_length=255)
