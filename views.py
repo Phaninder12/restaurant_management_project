@@ -39,6 +39,14 @@ class MenuItemIngredientsView(RetrieveAPIView):
     permission_classes = [AllowAny]
 
 
+class MenuItemDetailView(RetrieveAPIView):
+    queryset = MenuItem.objects.all()
+    serializer_class = MenuItemSerializer
+    permission_classes = [AllowAny]
+    lookup_field = 'pk'
+    lookup_url_kwarg = 'menu_item_id'
+
+
 def home_page(request):
     featured_dishes = MenuItem.objects.get_top_selling_items(3)
     return render(request, 'home/index.html', {'featured_dishes': featured_dishes})
