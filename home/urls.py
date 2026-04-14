@@ -20,6 +20,7 @@ from .views import (
     update_menu_item_availability,
     get_restaurant_info,
     get_restaurant_opening_hours,
+    get_menu_item_availability,
 )
 
 router = DefaultRouter()
@@ -35,6 +36,7 @@ urlpatterns = [
     path('menu-items/<int:menu_item_id>/', MenuItemDetailView.as_view(), name='menu-item-detail'),
     path('menu-items/<int:menu_item_id>/reviews/', MenuItemReviewsView.as_view(), name='menu-item-reviews'),
     path('menu-items/<int:menu_item_id>/availability/', update_menu_item_availability, name='update-menu-item-availability'),
+    path('menu-items/<int:menu_item_id>/availability-check/', get_menu_item_availability, name='menu-item-availability-check'),
     path('menu-items/search/', MenuItemSearchView.as_view(), name='menu-item-search'),
     path('menu-categories/names/', MenuCategoryNameListView.as_view(), name='menu-category-names'),
     path('daily-specials/', DailySpecialsView.as_view(), name='daily-specials'),
