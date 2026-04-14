@@ -4,6 +4,8 @@ from rest_framework.generics import ListAPIView, RetrieveAPIView, CreateAPIView
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework.pagination import PageNumberPagination
 from .models import MenuCategory, MenuItem, Table, Restaurant, ContactFormSubmission, UserReview
 from .serializers import (
     MenuCategorySerializer,
@@ -138,4 +140,17 @@ def update_menu_item_availability(request, menu_item_id):
         'menu_item_id': menu_item_id,
         'is_available': is_available
     })
+
+
+class UserReviewPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
+
+class UserReviewListView(generics.ListAPIView):
+    queryset = UserReview.objects.all().order_by('-review_date')
+    serializer_class = UserReviewSerializer
+    permission_classes = [AllowAny]
+    pagination_class = UserReviewPagination
        
