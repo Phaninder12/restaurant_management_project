@@ -17,6 +17,7 @@ from .serializers import (
     ContactFormSubmissionSerializer,
     UserReviewSerializer,
     DailyOperatingHoursSerializer,
+    MenuItemSearchSerializer,
 )
 
 
@@ -110,6 +111,29 @@ class RestaurantOpeningHoursListView(generics.ListAPIView):
     queryset = DailyOperatingHours.objects.all().order_by('id')
     serializer_class = DailyOperatingHoursSerializer
     permission_classes = [AllowAny]
+
+
+class MenuItemSearchView(generics.ListAPIView):
+    """
+    Search for menu items by name (case-insensitive).
+    
+    Query Parameters:
+        q (str): The search term to find menu items by name.
+    
+    Returns a list of matching menu items with essential details.
+    """
+    serializer_class = MenuItemSearchSerializer
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        queryset = MenuItem.objects.all()
+        search_query = self.request.query_params.get('q', None)
+        
+        if search_query:
+            # Case-insensitive search using __icontains
+            queryset = queryset.filter(name__icontains=search_query)
+        
+        return queryset.order_by('name')
 
 
 class UserReviewCreateView(generics.CreateAPIView):
