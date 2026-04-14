@@ -1,87 +1,22 @@
 from datetime import datetime
-import datetime as dt # using an alias to avoid name conflict
-import re
-from .models import MenuItem, Cuisine
+from .models import DailyOperatingHours
 
-
-def calculate_discount(original_price, discount_percentage):
+def get_today_operating_hours():
     """
-    Calculate the discounted price given the original price and discount percentage.
-
-    Args:
-        original_price (float or int): The original price of the item.
-        discount_percentage (float or int): The discount percentage (0-100).
-
-    Returns:
-        float or None: The discounted price if valid inputs, otherwise None.
+    Returns the opening and closing times for the current day of the week.
+    Returns: (open_time, close_time) or (None, None) if not found.
     """
+    # 1. Get the current day of the week (e.g., 'Monday', 'Tuesday')
+    current_day = datetime.now().strftime('%A')
+
     try:
-        # Convert to float for consistency
-        price = float(original_price)
-        discount = float(discount_percentage)
-
-        # Validate inputs
-        if price < 0:
-            return None  # Invalid: negative price
-        if discount < 0 or discount > 100:
-            return None  # Invalid: discount out of range
-
-        # Calculate discounted price
-        if discount == 0:
-            return price
-        elif discount == 100:
-            return 0.0
-        else:
-            discounted_price = price * (1 - discount / 100)
-            return round(discounted_price, 2)
-
-    except (ValueError, TypeError):
-        # Handle cases where inputs cannot be converted to float
-        return None
-
-
-def is_restaurant_open():
-    # Get current time
-    now = datetime.now()
-    current_time = now.time()
-    current_day = now.weekday() 
-
-    # Weekdays (0-4): 9 AM - 10 PM
-    if current_day <= 4:
-        opening = dt.time(9, 0)
-        closing = dt.time(22, 0)
-    # Weekends (5-6): 11 AM - 11 PM
-    else:
-        opening = dt.time(11, 0)
-        closing = dt.time(23, 0)
-
-    return opening <= current_time <= closing
-
-
-def get_distinct_cuisines():
-    """
-    Retrieve a list of all unique cuisine types currently available across menu items.
-    
-    Returns:
-        list: A list of strings, each representing a unique cuisine name.
-    """
-    return list(MenuItem.objects.filter(cuisine__isnull=False).values_list('cuisine__name', flat=True).distinct())
-
-
-def validate_email(email):
-    """
-    Validate an email address using a regular expression.
-
-    Args:
-        email (str): The email address to validate.
-
-    Returns:
-        bool: True if the email is valid, False otherwise.
-    """
-    if not isinstance(email, str):
-        return False
-    
-    # Regular expression for email validation
-    email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-    
-    return re.match(email_regex, email) is not None
+        # 2. Query the model for the current day's entry
+        # We use .get() because days should be unique in this model
+        hours_entry = DailyOperatingHours.objects.get(day=current_day)
+        
+        # 3. Return the tuple of times
+        return (hours_entry.open_time, hours_entry.close_time)
+        
+    except DailyOperatingHours.DoesNotExist:
+        # 4. Return (None, None) if the day is missing or restaurant is closed
+        return (None, None)          
