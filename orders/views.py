@@ -110,6 +110,19 @@ class PaymentMethodListView(generics.ListAPIView):
         return PaymentMethod.objects.filter(is_active=True)
 
 
+class OrderStatusRetrieveView(generics.RetrieveAPIView):
+    """
+    Retrieve the status of a specific order by its unique order_id.
+    
+    This endpoint accepts a unique order ID and returns the order's 
+    current status along with other order details.
+    """
+    queryset = Order.objects.all()
+    serializer_class = OrderDetailSerializer
+    permission_classes = [AllowAny]
+    lookup_field = 'order_id'
+
+
 class OrderStatusUpdateView(APIView):
     permission_classes = [IsAuthenticated]
 
