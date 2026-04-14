@@ -6,7 +6,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
-from .models import MenuCategory, MenuItem, Table, Restaurant, ContactFormSubmission, UserReview
+from .models import MenuCategory, MenuItem, Table, Restaurant, ContactFormSubmission, UserReview, DailyOperatingHours
 from .serializers import (
     MenuCategorySerializer,
     MenuCategoryNameSerializer,
@@ -16,6 +16,7 @@ from .serializers import (
     RestaurantSerializer,
     ContactFormSubmissionSerializer,
     UserReviewSerializer,
+    DailyOperatingHoursSerializer,
 )
 
 
@@ -98,6 +99,17 @@ class AvailableTablesAPIView(generics.ListAPIView):
 
     def get_queryset(self):
         return Table.objects.filter(is_available=True)
+
+
+class RestaurantOpeningHoursListView(generics.ListAPIView):
+    """
+    Retrieve all restaurant opening hours for each day of the week.
+    
+    Returns a list of opening hours with days and corresponding opening/closing times.
+    """
+    queryset = DailyOperatingHours.objects.all().order_by('id')
+    serializer_class = DailyOperatingHoursSerializer
+    permission_classes = [AllowAny]
 
 
 class UserReviewCreateView(generics.CreateAPIView):

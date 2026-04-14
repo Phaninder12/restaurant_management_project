@@ -12,6 +12,7 @@ from .views import (
     ContactFormSubmissionCreateAPIView,
     UserReviewCreateView,
     UserReviewListView,
+    RestaurantOpeningHoursListView,
     update_menu_item_availability,
     get_restaurant_info,
 )
@@ -28,6 +29,7 @@ urlpatterns = [
     path('menu-categories/names/', MenuCategoryNameListView.as_view(), name='menu-category-names'),
     path('daily-specials/', DailySpecialsView.as_view(), name='daily-specials'),
     path('restaurant-info/', get_restaurant_info, name='restaurant-info'),
+    path('opening-hours/', RestaurantOpeningHoursListView.as_view(), name='opening-hours'),
     # Detail endpoint: e.g., /api/tables/1/
     path('api/tables/<int:pk>/', TableDetailView.as_view(), name='table-detail'),
     path('api/menu/', MenuItemListView.as_view(), name='menu-item-list'),
