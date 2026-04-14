@@ -1,6 +1,6 @@
 import secrets
 import string
-from django.db.models import Sum # type: ignore
+from django.db.models import Sum, Avg # type: ignore
 from django.core.validators import validate_email # type: ignore
 from django.core.exceptions import ValidationError # type: ignore
 import logging
@@ -183,6 +183,34 @@ def calculate_discount_amount(order_total, discount_percentage):
         raise ValueError("discount_percentage cannot be negative.")
 
     return (total * percentage) / Decimal('100')
+
+
+def calculate_average_rating(review_queryset):
+    """
+    Calculate the average rating for a queryset of review objects.
+
+    Args:
+        review_queryset: A Django QuerySet of objects with a numeric 'rating' field.
+
+    Returns:
+        float: The average rating, or 0.0 when the queryset contains no reviews.
+
+    Raises:
+        ValueError: If the provided input is not a valid queryset.
+    """
+    if review_queryset is None:
+        raise ValueError('A review queryset must be provided.')
+
+    if not hasattr(review_queryset, 'aggregate'):
+        raise ValueError('Input must be a Django QuerySet.')
+
+    try:
+        aggregation = review_queryset.aggregate(avg_rating=Avg('rating'))
+    except Exception as exc:
+        raise ValueError('Could not calculate average rating from the provided queryset.') from exc
+
+    avg_rating = aggregation.get('avg_rating')
+    return float(avg_rating) if avg_rating is not None else 0.0
 
 
 def calculate_discount(order):
