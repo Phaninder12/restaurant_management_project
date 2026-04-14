@@ -1,5 +1,6 @@
 from django.shortcuts import render
-from rest_framework import generics, status
+from django.db import DatabaseError
+from rest_framework import generics, status, serializers
 from rest_framework.generics import ListAPIView, RetrieveAPIView, CreateAPIView
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -160,6 +161,50 @@ class MenuItemSearchView(generics.ListAPIView):
         return queryset.order_by('name')
 
 
+class MenuItemPriceRangeView(generics.ListAPIView):
+    """
+    List menu items whose price falls between min_price and max_price.
+
+    Query Parameters:
+        min_price (decimal): The minimum price.
+        max_price (decimal): The maximum price.
+    """
+    serializer_class = MenuItemSerializer
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        from decimal import Decimal, InvalidOperation
+
+        queryset = MenuItem.objects.all().order_by('price')
+        min_price = self.request.query_params.get('min_price')
+        max_price = self.request.query_params.get('max_price')
+
+        if min_price is None or max_price is None:
+            raise serializers.ValidationError({
+                'detail': 'Both min_price and max_price query parameters are required.'
+            })
+
+        try:
+            min_price_dec = Decimal(str(min_price))
+            max_price_dec = Decimal(str(max_price))
+        except (InvalidOperation, TypeError, ValueError):
+            raise serializers.ValidationError({
+                'detail': 'min_price and max_price must be valid numeric values.'
+            })
+
+        if min_price_dec < 0 or max_price_dec < 0:
+            raise serializers.ValidationError({
+                'detail': 'Price values cannot be negative.'
+            })
+
+        if min_price_dec > max_price_dec:
+            raise serializers.ValidationError({
+                'detail': 'min_price cannot be greater than max_price.'
+            })
+
+        return queryset.filter(price__gte=min_price_dec, price__lte=max_price_dec)
+
+
 class UserReviewCreateView(generics.CreateAPIView):
     serializer_class = UserReviewSerializer
     permission_classes = [IsAuthenticated]
@@ -206,6 +251,27 @@ class UserReviewPagination(PageNumberPagination):
     page_size = 10
     page_size_query_param = 'page_size'
     max_page_size = 100
+
+
+class RestaurantReviewListView(generics.ListAPIView):
+    """
+    List all restaurant reviews with pagination.
+
+    Returns a paginated JSON array of reviews with rating and review text.
+    """
+    queryset = UserReview.objects.all().order_by('-review_date')
+    serializer_class = UserReviewSerializer
+    permission_classes = [AllowAny]
+    pagination_class = UserReviewPagination
+
+    def list(self, request, *args, **kwargs):
+        try:
+            return super().list(request, *args, **kwargs)
+        except DatabaseError as exc:
+            return Response(
+                {'detail': 'Unable to retrieve reviews at this time. Please try again later.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class UserReviewListView(generics.ListAPIView):
