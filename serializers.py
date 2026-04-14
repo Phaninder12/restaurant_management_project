@@ -45,6 +45,15 @@ class MenuItemAvailabilitySerializer(serializers.Serializer):
         return value
 
 
+class MenuItemSearchSerializer(serializers.ModelSerializer):
+    """
+    Lightweight serializer for search results containing essential menu item details.
+    """
+    class Meta:
+        model = MenuItem
+        fields = ['id', 'name', 'price', 'description', 'is_available']
+
+
 class TableSerializer(serializers.ModelSerializer):
     class Meta:
         model = Table

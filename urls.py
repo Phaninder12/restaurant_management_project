@@ -13,6 +13,7 @@ from .views import (
     UserReviewCreateView,
     UserReviewListView,
     RestaurantOpeningHoursListView,
+    MenuItemSearchView,
     update_menu_item_availability,
     get_restaurant_info,
 )
@@ -26,6 +27,7 @@ urlpatterns = [
     path('reviews/create/', UserReviewCreateView.as_view(), name='create-review'),
     path('menu-items/<int:menu_item_id>/reviews/', MenuItemReviewsView.as_view(), name='menu-item-reviews'),
     path('menu-items/<int:menu_item_id>/availability/', update_menu_item_availability, name='update-menu-item-availability'),
+    path('menu-items/search/', MenuItemSearchView.as_view(), name='menu-item-search'),
     path('menu-categories/names/', MenuCategoryNameListView.as_view(), name='menu-category-names'),
     path('daily-specials/', DailySpecialsView.as_view(), name='daily-specials'),
     path('restaurant-info/', get_restaurant_info, name='restaurant-info'),
