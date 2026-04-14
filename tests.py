@@ -5,8 +5,9 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 from products.models import Item
+from home.models import MenuItem, UserReview
 from .models import Order, OrderItem
-from .utils import calculate_discount_amount
+from .utils import calculate_discount_amount, calculate_average_rating
 
 User = get_user_model()
 
@@ -72,6 +73,41 @@ class OrderModelTest(TestCase):
             calculate_discount_amount(-100, 10)
         with self.assertRaises(ValueError):
             calculate_discount_amount(100, -5)
+
+
+class ReviewUtilityTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='reviewer')
+        self.menu_item = MenuItem.objects.create(
+            name='Test Dish',
+            description='A test dish',
+            price=Decimal('9.99')
+        )
+
+    def test_calculate_average_rating_with_reviews(self):
+        UserReview.objects.create(
+            user=self.user,
+            menu_item=self.menu_item,
+            rating=4,
+            comment='Good'
+        )
+        UserReview.objects.create(
+            user=self.user,
+            menu_item=self.menu_item,
+            rating=5,
+            comment='Excellent'
+        )
+
+        avg_rating = calculate_average_rating(UserReview.objects.all())
+        self.assertAlmostEqual(avg_rating, 4.5)
+
+    def test_calculate_average_rating_empty_queryset(self):
+        avg_rating = calculate_average_rating(UserReview.objects.none())
+        self.assertEqual(avg_rating, 0.0)
+
+    def test_calculate_average_rating_invalid_input(self):
+        with self.assertRaises(ValueError):
+            calculate_average_rating(None)
 
 
 class OrderCancelAPITest(APITestCase):
