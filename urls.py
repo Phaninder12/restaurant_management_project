@@ -10,6 +10,7 @@ from .views import (
     MenuItemListView,
     MenuItemDetailView,
     MenuItemPriceRangeView,
+    RestaurantReviewListView,
     RestaurantInfoAPIView,
     ContactFormSubmissionCreateAPIView,
     UserReviewCreateView,
@@ -27,6 +28,7 @@ router.register(r'menu-categories', MenuCategoryViewSet)
 urlpatterns = [
     path('', include(router.urls)),
     path('reviews/', UserReviewListView.as_view(), name='user-reviews-list'),
+    path('restaurant-reviews/', RestaurantReviewListView.as_view(), name='restaurant-reviews-list'),
     path('reviews/create/', UserReviewCreateView.as_view(), name='create-review'),
     path('menu-items/', MenuItemListView.as_view(), name='menu-item-list'),
     path('menu-items/price-range/', MenuItemPriceRangeView.as_view(), name='menu-item-price-range'),
