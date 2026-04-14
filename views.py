@@ -161,6 +161,19 @@ class MenuItemSearchView(generics.ListAPIView):
         return queryset.order_by('name')
 
 
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_menu_item_availability(request, menu_item_id):
+    """
+    Retrieve the availability status of a menu item by its ID.
+    """
+    try:
+        menu_item = MenuItem.objects.get(pk=menu_item_id)
+        return Response({'available': menu_item.is_available})
+    except MenuItem.DoesNotExist:
+        return Response({'error': 'Menu item not found'}, status=status.HTTP_404_NOT_FOUND)
+
+
 class MenuItemPriceRangeView(generics.ListAPIView):
     """
     List menu items whose price falls between min_price and max_price.
