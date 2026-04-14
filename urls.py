@@ -11,6 +11,7 @@ from .views import (
     RestaurantInfoAPIView,
     ContactFormSubmissionCreateAPIView,
     UserReviewCreateView,
+    UserReviewListView,
     update_menu_item_availability,
     get_restaurant_info,
 )
@@ -20,7 +21,8 @@ router.register(r'menu-categories', MenuCategoryViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
-    path('reviews/', UserReviewCreateView.as_view(), name='create-review'),
+    path('reviews/', UserReviewListView.as_view(), name='user-reviews-list'),
+    path('reviews/create/', UserReviewCreateView.as_view(), name='create-review'),
     path('menu-items/<int:menu_item_id>/reviews/', MenuItemReviewsView.as_view(), name='menu-item-reviews'),
     path('menu-items/<int:menu_item_id>/availability/', update_menu_item_availability, name='update-menu-item-availability'),
     path('menu-categories/names/', MenuCategoryNameListView.as_view(), name='menu-category-names'),
