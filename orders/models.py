@@ -43,11 +43,11 @@ class OrderManager(models.Manager):
 
 class Order(models.Model):
     STATUS_CHOICES = [
-        ('pending', 'Pending'),
-        ('processing', 'Processing'),
-        ('delivered', 'Delivered'),
-        ('completed', 'Completed'),
-        ('cancelled', 'Cancelled'),
+        ('Pending', 'Pending'),
+        ('Processing', 'Processing'),
+        ('Delivered', 'Delivered'),
+        ('Completed', 'Completed'),
+        ('Cancelled', 'Cancelled'),
     ]
     
     order_id = models.CharField(max_length=12, unique=True, editable=False, null=True, blank=True)
