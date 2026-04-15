@@ -335,4 +335,4 @@ def calculate_order_total(order_items):
         # Add to total
         total += price * quantity
     
-    return total         
+    return total             
