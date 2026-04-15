@@ -1,104 +1,89 @@
 from rest_framework import serializers
-from .models import MenuCategory, MenuItem, Ingredient, Table, Restaurant, ContactFormSubmission, UserReview, DailyOperatingHours,MenuItem
+from .models import Order, OrderItem, PaymentMethod
 
 
-class MenuCategorySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = MenuCategory
-        fields = ['id', 'name', 'description']
-
-
-class MenuCategoryNameSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = MenuCategory
-        fields = ['name']
-
-
-class IngredientSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Ingredient
-        fields = ['id', 'name', 'is_allergen']
-
-
-class MenuItemSerializer(serializers.ModelSerializer):
-    ingredients = IngredientSerializer(many=True, read_only=True)
-    category_name = serializers.CharField(source='category.name', read_only=True)
-    cuisine_name = serializers.CharField(source='cuisine.name', read_only=True)
-    image = serializers.URLField(source='image_url', read_only=True)
+class OrderItemSerializer(serializers.ModelSerializer):
+    item_name = serializers.ReadOnlyField(source='item.item_name')
 
     class Meta:
-        model = MenuItem
-        fields = ['id', 'name', 'description', 'price', 'image', 'category', 'category_name', 'cuisine', 'cuisine_name', 'ingredients', 'is_daily_special', 'is_available', 'discount_percentage']
+        model = OrderItem
+        fields = ['item_name', 'quantity', 'price_at_time', 'get_cost']
 
 
-class MenuItemIngredientsSerializer(serializers.ModelSerializer):
-    ingredients = IngredientSerializer(many=True, read_only=True)
+class OrderSerializer(serializers.ModelSerializer):
+    customer_name = serializers.ReadOnlyField(source='customer.username')
+    status = serializers.CharField(read_only=True)
+    # This calls the get_total_item_count method from your model
+    total_items = serializers.ReadOnlyField(source='get_total_item_count')
 
     class Meta:
-        model = MenuItem
-        fields = ['id', 'name', 'ingredients']
+        model = Order
+        fields = [
+            'id', 'order_id', 'customer_name', 'created_at', 
+            'total_price', 'discount_amount', 'final_price', 
+            'status', 'total_items'
+        ]
 
 
-class MenuItemAvailabilitySerializer(serializers.Serializer):
-    is_available = serializers.BooleanField()
+class OrderDetailSerializer(OrderSerializer):
+    items = OrderItemSerializer(many=True, read_only=True)
 
-    def validate_is_available(self, value):
-        if not isinstance(value, bool):
-            raise serializers.ValidationError("is_available must be a boolean value.")
+    class Meta(OrderSerializer.Meta):
+        model = Order
+        fields = OrderSerializer.Meta.fields + ['items', 'applied_coupon']
+
+
+class PaymentMethodSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PaymentMethod
+        fields = ['id', 'name', 'description', 'is_active']
+
+
+class OrderStatusUpdateSerializer(serializers.Serializer):
+    status = serializers.CharField(max_length=50)
+
+    def validate_status(self, value):
+        allowed_statuses = ['pending', 'processing', 'delivered', 'cancelled']
+        if value not in allowed_statuses:
+            raise serializers.ValidationError(f"Status must be one of: {', '.join(allowed_statuses)}")
         return value
 
-
-class MenuItemSearchSerializer(serializers.ModelSerializer):
-    """
-    Lightweight serializer for search results containing essential menu item details.
-    """
-    class Meta:
-        model = MenuItem
-        fields = ['id', 'name', 'price', 'description', 'is_available']
-
-
-class TableSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Table
-        fields = ['id', 'number', 'capacity', 'is_available']
-
-
-class DailyOperatingHoursSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = DailyOperatingHours
-        fields = ['day', 'open_time', 'close_time']
-
-
-class RestaurantSerializer(serializers.ModelSerializer):
-    operating_hours = DailyOperatingHoursSerializer(many=True, read_only=True)
+class OrderHistorySerializer(serializers.ModelSerializer):
+    items = OrderItemSerializer(many=True, read_only=True)
+    # Added here as well for the History view
+    total_items = serializers.ReadOnlyField(source='get_total_item_count')
 
     class Meta:
-        model = Restaurant
-        fields = ['id', 'name', 'address', 'phone_number', 'has_delivery', 'operating_days', 'operating_hours']
+        model = Order
+        fields = [
+            'order_id', 'created_at', 'status', 'total_price', 
+            'discount_amount', 'final_price', 'total_items', 'items'
+        ]
 
-
-class ContactFormSubmissionSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ContactFormSubmission
-        fields = ['id', 'name', 'email', 'message', 'created_at']
-        read_only_fields = ['id', 'created_at']
-
-
-class UserReviewSerializer(serializers.ModelSerializer):
-    user = serializers.ReadOnlyField(source='user.username')
-    menu_item = serializers.PrimaryKeyRelatedField(queryset=MenuItem.objects.all())
+class OrderCreateSerializer(serializers.ModelSerializer):
+    items = serializers.ListField(child=serializers.DictField(), write_only=True)
 
     class Meta:
-        model = UserReview
-        fields = ['id', 'user', 'menu_item', 'rating', 'comment', 'review_date']
-        read_only_fields = ['id', 'review_date']
+        model = Order
+        fields = ['items', 'applied_coupon']
 
-    def validate_rating(self, value):
-        if not (1 <= value <= 5):
-            raise serializers.ValidationError("Rating must be between 1 and 5.")
-        return value
-    
-class MenuItemSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = MenuItem
-        fields = ['id', 'name', 'description', 'price', 'is_available']    
+    def create(self, validated_data):
+        items_data = validated_data.pop('items')
+        order = Order.objects.create(**validated_data)
+        
+        for item_data in items_data:
+            from products.models import Item
+            # 1. Fetch the official item from the database
+            product_item = Item.objects.get(id=item_data['item'])
+            
+            # 2. Create the OrderItem using the OFFICIAL price, ignoring the request data
+            OrderItem.objects.create(
+                order=order,
+                item=product_item,
+                quantity=item_data.get('quantity', 1),
+                price_at_time=product_item.item_price # Force the price from our DB
+            )
+        
+        # 3. Finalize calculations
+        order.calculate_total()
+        return order
