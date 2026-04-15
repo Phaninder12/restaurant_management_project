@@ -49,16 +49,11 @@ class OrderStatusUpdateSerializer(serializers.Serializer):
         return value
 
 class OrderHistorySerializer(serializers.ModelSerializer):
-    items = OrderItemSerializer(many=True, read_only=True)
-    # Added here as well for the History view
-    total_items = serializers.ReadOnlyField(source='get_total_item_count')
+    items = OrderItemSerializer(many=True, read_only=True) # Ensure this line exists
 
     class Meta:
         model = Order
-        fields = [
-            'order_id', 'created_at', 'status', 'total_price', 
-            'discount_amount', 'final_price', 'total_items', 'items'
-        ]
+        fields = ['id', 'order_id', 'created_at', 'status', 'total_price', 'items']
 
 class OrderCreateSerializer(serializers.ModelSerializer):
     items = serializers.ListField(child=serializers.DictField(), write_only=True)
@@ -92,3 +87,6 @@ class OrderStatusUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = ['status']    
+
+class ApplyCouponSerializer(serializers.Serializer):
+    coupon_code = serializers.CharField(max_length=50)        
