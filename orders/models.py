@@ -3,6 +3,7 @@ from django.db import models # type: ignore
 from django.db.models import Q # type: ignore
 from decimal import Decimal
 from products.models import Item
+from django.utils import timezone
 
 
 class OrderStatus(models.Model):
@@ -173,3 +174,27 @@ class LoyaltyProgram(models.Model):
 
     class Meta:
         ordering = ['points_required']
+
+# 1. New Manager for Reservations
+class ReservationManager(models.Manager):
+    def get_upcoming_reservations(self):
+        """Returns only reservations scheduled for the future."""
+        return self.filter(reservation_datetime__gt=timezone.now())
+
+# 2. New Reservation Model
+class Reservation(models.Model):
+    customer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='order_reservations'
+    )
+    reservation_datetime = models.DateTimeField()
+    number_of_people = models.PositiveIntegerField(default=1)
+    special_requests = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    # 3. Assign the custom manager
+    objects = ReservationManager()
+
+    def __str__(self):
+        return f"Reservation for {self.customer} on {self.reservation_datetime}"        
