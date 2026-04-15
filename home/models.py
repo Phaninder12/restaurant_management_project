@@ -2,6 +2,7 @@ import datetime
 from django.conf import settings
 from django.db import models
 
+# --- Helper Models ---
 
 class MenuCategory(models.Model):
     name = models.CharField(max_length=100)
@@ -26,6 +27,8 @@ class Ingredient(models.Model):
         return self.name
 
 
+# --- MenuItem & Manager ---
+
 class MenuItemManager(models.Manager):
     def get_top_selling_items(self, num_items=5):
         return self.get_queryset().all()[:num_items]
@@ -49,14 +52,7 @@ class MenuItem(models.Model):
         return self.name
 
     def get_final_price(self):
-        """
-        Return the final menu item price after applying any discount.
-
-        The discount is calculated as a percentage of the base price.
-        If the configured discount is invalid or zero, the base price is returned.
-        """
         from decimal import Decimal
-
         try:
             discount = Decimal(self.discount_percentage)
         except Exception:
@@ -73,17 +69,10 @@ class MenuItem(models.Model):
 
     @classmethod
     def get_by_cuisine(cls, cuisine_name):
-        """
-        Retrieve a queryset of menu items filtered by cuisine type.
-
-        Args:
-            cuisine_name (str): The name of the cuisine to filter by.
-
-        Returns:
-            QuerySet: A queryset of MenuItem objects matching the cuisine.
-        """
         return cls.objects.filter(cuisine__name=cuisine_name)
 
+
+# --- Restaurant Infrastructure ---
 
 class Restaurant(models.Model):
     name = models.CharField(max_length=255)
@@ -106,14 +95,32 @@ class Restaurant(models.Model):
         return self.name
 
     def get_total_menu_items(self):
-        """
-        Returns the total number of menu items currently listed in the database.
-        
-        Returns:
-            int: The total count of menu items.
-        """
         return MenuItem.objects.count()
 
+
+class DailyOperatingHours(models.Model):
+    DAYS_OF_WEEK = [
+        ('Monday', 'Monday'),
+        ('Tuesday', 'Tuesday'),
+        ('Wednesday', 'Wednesday'),
+        ('Thursday', 'Thursday'),
+        ('Friday', 'Friday'),
+        ('Saturday', 'Saturday'),
+        ('Sunday', 'Sunday'),
+    ]
+    restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE, related_name='operating_hours')
+    day = models.CharField(max_length=10, choices=DAYS_OF_WEEK)
+    open_time = models.TimeField()
+    close_time = models.TimeField()
+
+    class Meta:
+        unique_together = ('restaurant', 'day')
+
+    def __str__(self):
+        return f"{self.restaurant.name} - {self.day}: {self.open_time} - {self.close_time}"
+
+
+# --- Customer Interaction ---
 
 class DailySpecialManager(models.Manager):
     def upcoming(self):
@@ -138,28 +145,6 @@ class Table(models.Model):
 
     def __str__(self):
         return f"Table {self.number}"
-
-
-class DailyOperatingHours(models.Model):
-    DAYS_OF_WEEK = [
-        ('Monday', 'Monday'),
-        ('Tuesday', 'Tuesday'),
-        ('Wednesday', 'Wednesday'),
-        ('Thursday', 'Thursday'),
-        ('Friday', 'Friday'),
-        ('Saturday', 'Saturday'),
-        ('Sunday', 'Sunday'),
-    ]
-    restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE, related_name='operating_hours')
-    day = models.CharField(max_length=10, choices=DAYS_OF_WEEK)
-    open_time = models.TimeField()
-    close_time = models.TimeField()
-
-    class Meta:
-        unique_together = ('restaurant', 'day')
-
-    def __str__(self):
-        return f"{self.restaurant.name} - {self.day}: {self.open_time} - {self.close_time}"
 
 
 class ContactFormSubmission(models.Model):
@@ -195,6 +180,20 @@ class LoyaltyProgram(models.Model):
         return self.name
 
 
+# --- Reservations ---
+
+class ReservationManager(models.Manager):
+    def get_upcoming_reservations(self):
+        from django.utils import timezone
+        now = timezone.now()
+        today = now.date()
+        current_time = now.time()
+        return self.get_queryset().filter(
+            models.Q(reservation_date__gt=today) |
+            models.Q(reservation_date=today, start_time__gt=current_time)
+        )
+
+
 class Reservation(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='reservations', null=True, blank=True)
     table = models.ForeignKey(Table, on_delete=models.SET_NULL, null=True, blank=True, related_name='reservations')
@@ -205,6 +204,8 @@ class Reservation(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    objects = ReservationManager()
+
     class Meta:
         ordering = ['reservation_date', 'start_time']
 
@@ -213,19 +214,6 @@ class Reservation(models.Model):
 
     @classmethod
     def find_available_slots(cls, reservation_date, start_time, end_time, table_id=None, slot_length_minutes=30):
-        """
-        Find available reservation slots for a date/time range.
-
-        Args:
-            reservation_date (datetime.date): The date to search.
-            start_time (datetime.time or str): The earliest slot start time.
-            end_time (datetime.time or str): The latest slot end time.
-            table_id (int, optional): Restrict availability to a particular table.
-            slot_length_minutes (int): Length of each slot in minutes.
-
-        Returns:
-            list[dict]: Available slots as dictionaries with 'start' and 'end' times.
-        """
         if isinstance(start_time, str):
             start_time = datetime.datetime.strptime(start_time, '%H:%M').time()
         if isinstance(end_time, str):
@@ -243,7 +231,6 @@ class Reservation(models.Model):
             end_time__gt=start_time,
         ).order_by('start_time')
 
-        # Build a timeline of occupied intervals.
         occupied = []
         for reservation in overlapping_reservations:
             occupied_start = max(reservation.start_time, start_time)
@@ -283,4 +270,3 @@ class Reservation(models.Model):
             })
             start_dt = slot_end
         return slots
-    

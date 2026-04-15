@@ -1,6 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
+    AvailableMenuItemsView,
     AvailableTablesAPIView,
     DailySpecialsView,
     MenuCategoryViewSet,
@@ -47,4 +48,5 @@ urlpatterns = [
     path('tables/<int:pk>/', TableDetailView.as_view(), name='table-detail'),
     path('tables/available/', AvailableTablesAPIView.as_view(), name='available_tables_api'),
     path('contact/', ContactFormSubmissionCreateAPIView.as_view(), name='contact-form-submit'),
+    path('api/available-menu/', AvailableMenuItemsView.as_view(), name='available-menu'),
 ]
