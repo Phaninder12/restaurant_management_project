@@ -19,6 +19,7 @@ from .serializers import (
     UserReviewSerializer,
     DailyOperatingHoursSerializer,
     MenuItemSearchSerializer,
+    MenuItemSerializer,
 )
 
 
@@ -292,4 +293,13 @@ class UserReviewListView(generics.ListAPIView):
     serializer_class = UserReviewSerializer
     permission_classes = [AllowAny]
     pagination_class = UserReviewPagination
+
+class AvailableMenuItemsView(generics.ListAPIView):
+    serializer_class = MenuItemSerializer
+
+    def get_queryset(self):
+        """
+        Return only the items where is_available is True.
+        """
+        return MenuItem.objects.filter(is_available=True)    
        

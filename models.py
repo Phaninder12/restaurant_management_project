@@ -1,200 +1,272 @@
-from django.conf import settings # type: ignore
-from django.db import models # type: ignore
-from django.db.models import Q # type: ignore
-from decimal import Decimal
-from products.models import Item
-from django.utils import timezone
+import datetime
+from django.conf import settings
+from django.db import models
 
+# --- Helper Models ---
 
-class OrderStatus(models.Model):
-    name = models.CharField(max_length=50, unique=True)
-
-    class Meta:
-        verbose_name_plural = "Order Statuses"
-
-    def __str__(self):
-        return self.name
-
-
-class Coupon(models.Model):
-    code = models.CharField(max_length=50, unique=True)
-    discount_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0)
-    is_active = models.BooleanField(default=True)
-    valid_from = models.DateField(auto_now_add=False, null=True, blank=True)
-    valid_until = models.DateField(null=True, blank=True)
-
-    def __str__(self):
-        return self.code
-
-
-class PaymentMethod(models.Model):
-    name = models.CharField(max_length=50, unique=True)
+class MenuCategory(models.Model):
+    name = models.CharField(max_length=100)
     description = models.TextField(blank=True, null=True)
-    is_active = models.BooleanField(default=True)
 
     def __str__(self):
         return self.name
 
 
-class OrderManager(models.Manager):
-    def get_active_orders(self):
-        return self.filter(
-            Q(status='pending') | Q(status='processing')
-        )
-
-    def get_orders_by_status(self, status_name):
-        return self.filter(status=status_name)
-
-
-class Order(models.Model):
-    STATUS_CHOICES = [
-        ('pending', 'Pending'),
-        ('processing', 'Processing'),
-        ('delivered', 'Delivered'),
-        ('cancelled', 'Cancelled'),
-    ]
-    
-    order_id = models.CharField(max_length=12, unique=True, editable=False, null=True, blank=True)
-    customer = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='orders',
-        null=True,
-        blank=True,
-    )
-    status = models.CharField(
-        max_length=20,
-        choices=STATUS_CHOICES,
-        default='pending',
-    )
-    applied_coupon = models.ForeignKey(
-        Coupon,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='used_orders',
-    )
-    total_price = models.DecimalField(max_digits=12, decimal_places=2, default=0, editable=False)
-    discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0, editable=False)
-    final_price = models.DecimalField(max_digits=12, decimal_places=2, default=0, editable=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    objects = OrderManager()
+class Cuisine(models.Model):
+    name = models.CharField(max_length=100, unique=True)
 
     def __str__(self):
-        return f"Order {self.order_id or self.id}"
-
-    @property
-    def customer_name(self):
-        return self.customer.username if self.customer else ''
-
-    def calculate_total(self):
-        """
-        Iterates through the items in the order and sums their prices 
-        multiplied by quantity to get a grand total, taking into account discounts.
-        """
-        from .utils import calculate_discount
-        # Sum up the cost of all related OrderItem objects
-        total = sum(item.get_cost() for item in self.items.all())
-        
-        # Convert to Decimal to ensure precision
-        self.total_price = Decimal(total)
-        
-        # Calculate discount
-        self.discount_amount = calculate_discount(self)
-        
-        # Calculate final price
-        self.final_price = self.total_price - self.discount_amount
-        if self.final_price < 0:
-            self.final_price = Decimal('0.00')
-        
-        return self.final_price
-
-    def calculate_prices(self):
-        """Recalculate total, discount, and final prices for the order."""
-        self.calculate_total()
-        self.final_price = self.total_price - self.discount_amount
-        if self.final_price < 0:
-            self.final_price = Decimal('0.00')
-        return self.final_price
-
-    def save(self, *args, **kwargs):
-        if not self.order_id:
-            from .utils import generate_unique_order_id
-            self.order_id = generate_unique_order_id()
-        super().save(*args, **kwargs)
+        return self.name
 
 
-class OrderItem(models.Model):
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
-    item = models.ForeignKey(
-        Item,
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name='order_items',
+class Ingredient(models.Model):
+    name = models.CharField(max_length=100)
+    is_allergen = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.name
+
+
+# --- MenuItem & Manager ---
+
+class MenuItemManager(models.Manager):
+    def get_top_selling_items(self, num_items=5):
+        return self.get_queryset().all()[:num_items]
+
+
+class MenuItem(models.Model):
+    name = models.CharField(max_length=200)
+    description = models.TextField()
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    discount_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    category = models.ForeignKey(MenuCategory, on_delete=models.SET_NULL, null=True, blank=True, related_name='menu_items')
+    cuisine = models.ForeignKey(Cuisine, on_delete=models.SET_NULL, null=True, blank=True, related_name='menu_items')
+    ingredients = models.ManyToManyField('Ingredient', related_name='menu_items', blank=True)
+    image_url = models.URLField(blank=True, null=True)
+    is_daily_special = models.BooleanField(default=False)
+    is_available = models.BooleanField(default=True)
+
+    objects = MenuItemManager()
+
+    def __str__(self):
+        return self.name
+
+    def get_final_price(self):
+        from decimal import Decimal
+        try:
+            discount = Decimal(self.discount_percentage)
+        except Exception:
+            discount = Decimal('0')
+
+        if discount <= 0:
+            return float(self.price)
+
+        if discount > 100:
+            discount = Decimal('100')
+
+        final_price = self.price * (Decimal('100') - discount) / Decimal('100')
+        return float(final_price.quantize(Decimal('0.01')))
+
+    @classmethod
+    def get_by_cuisine(cls, cuisine_name):
+        return cls.objects.filter(cuisine__name=cuisine_name)
+
+
+# --- Restaurant Infrastructure ---
+
+class Restaurant(models.Model):
+    name = models.CharField(max_length=255)
+    address = models.TextField()
+    phone_number = models.CharField(max_length=20, blank=True, null=True)
+    has_delivery = models.BooleanField(default=False)
+    operating_days = models.CharField(
+        max_length=100,
+        default="Mon,Tue,Wed,Thu,Fri,Sat,Sun",
+        help_text="Comma-separated days of operation (e.g., Mon,Tue,Wed)"
     )
-    quantity = models.PositiveIntegerField(default=1)
-    price_at_time = models.DecimalField(max_digits=10, decimal_places=2)
+    opening_hours = models.CharField(
+        max_length=100,
+        default="11:00 AM - 11:00 PM (EST)",
+        blank=True,
+        help_text="Formatted restaurant opening hours, including time zone."
+    )
+
+    def __str__(self):
+        return self.name
+
+    def get_total_menu_items(self):
+        return MenuItem.objects.count()
+
+
+class DailyOperatingHours(models.Model):
+    DAYS_OF_WEEK = [
+        ('Monday', 'Monday'),
+        ('Tuesday', 'Tuesday'),
+        ('Wednesday', 'Wednesday'),
+        ('Thursday', 'Thursday'),
+        ('Friday', 'Friday'),
+        ('Saturday', 'Saturday'),
+        ('Sunday', 'Sunday'),
+    ]
+    restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE, related_name='operating_hours')
+    day = models.CharField(max_length=10, choices=DAYS_OF_WEEK)
+    open_time = models.TimeField()
+    close_time = models.TimeField()
 
     class Meta:
-        unique_together = ('order', 'item')
+        unique_together = ('restaurant', 'day')
 
     def __str__(self):
-        return f"{self.quantity} x {self.item.item_name if self.item else 'Unknown item'}"
+        return f"{self.restaurant.name} - {self.day}: {self.open_time} - {self.close_time}"
 
-    def get_cost(self):
-        """Calculates the total cost for this specific item line."""
-        return self.price_at_time * self.quantity
+
+# --- Customer Interaction ---
+
+class DailySpecialManager(models.Manager):
+    def upcoming(self):
+        today = datetime.date.today()
+        return self.filter(date__gte=today).order_by('date')
+
+
+class DailySpecial(models.Model):
+    name = models.CharField(max_length=100)
+    description = models.TextField()
+    date = models.DateField(null=True, blank=True)
+    price = models.DecimalField(max_digits=5, decimal_places=2)
+    is_active = models.BooleanField(default=True)
+
+    objects = DailySpecialManager()
+
+
+class Table(models.Model):
+    number = models.PositiveIntegerField(unique=True)
+    capacity = models.PositiveIntegerField()
+    is_available = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"Table {self.number}"
+
+
+class ContactFormSubmission(models.Model):
+    name = models.CharField(max_length=255)
+    email = models.EmailField()
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"ContactFormSubmission from {self.name} <{self.email}>"
+
+
+class UserReview(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='reviews')
+    menu_item = models.ForeignKey(MenuItem, on_delete=models.CASCADE, related_name='reviews')
+    rating = models.IntegerField()
+    comment = models.TextField()
+    review_date = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Review by {self.user.username} for {self.menu_item.name}: {self.rating}/5"
 
 
 class LoyaltyProgram(models.Model):
-    name = models.CharField(
-        max_length=50, 
-        unique=True, 
-        help_text="The name of the loyalty tier (e.g., Silver Member)"
-    )
-    points_required = models.PositiveIntegerField(
-        unique=True, 
-        help_text="Minimum points required to reach this tier"
-    )
-    discount_percentage = models.DecimalField(
-        max_digits=5, 
-        decimal_places=2, 
-        help_text="Percentage discount for this tier (e.g., 5.00 for 5%)"
-    )
-    description = models.TextField(
-        blank=True, 
-        help_text="Brief explanation of the benefits"
-    )
+    name = models.CharField(max_length=100, unique=True)
+    points_per_dollar_spent = models.DecimalField(max_digits=5, decimal_places=2)
+    description = models.TextField()
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.name
 
-    class Meta:
-        ordering = ['points_required']
 
-# 1. New Manager for Reservations
+# --- Reservations ---
+
 class ReservationManager(models.Manager):
     def get_upcoming_reservations(self):
-        """Returns only reservations scheduled for the future."""
-        return self.filter(reservation_datetime__gt=timezone.now())
+        from django.utils import timezone
+        now = timezone.now()
+        today = now.date()
+        current_time = now.time()
+        return self.get_queryset().filter(
+            models.Q(reservation_date__gt=today) |
+            models.Q(reservation_date=today, start_time__gt=current_time)
+        )
 
-# 2. New Reservation Model
+
 class Reservation(models.Model):
-    customer = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='order_reservations'
-    )
-    reservation_datetime = models.DateTimeField()
-    number_of_people = models.PositiveIntegerField(default=1)
-    special_requests = models.TextField(blank=True, null=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='reservations', null=True, blank=True)
+    table = models.ForeignKey(Table, on_delete=models.SET_NULL, null=True, blank=True, related_name='reservations')
+    reservation_date = models.DateField()
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+    party_size = models.PositiveIntegerField(default=1)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
-    # 3. Assign the custom manager
     objects = ReservationManager()
 
+    class Meta:
+        ordering = ['reservation_date', 'start_time']
+
     def __str__(self):
-        return f"Reservation for {self.customer} on {self.reservation_datetime}"        
+        return f"Reservation on {self.reservation_date} from {self.start_time} to {self.end_time}"
+
+    @classmethod
+    def find_available_slots(cls, reservation_date, start_time, end_time, table_id=None, slot_length_minutes=30):
+        if isinstance(start_time, str):
+            start_time = datetime.datetime.strptime(start_time, '%H:%M').time()
+        if isinstance(end_time, str):
+            end_time = datetime.datetime.strptime(end_time, '%H:%M').time()
+
+        if start_time >= end_time:
+            raise ValueError('start_time must be before end_time')
+
+        queryset = cls.objects.filter(reservation_date=reservation_date)
+        if table_id is not None:
+            queryset = queryset.filter(table_id=table_id)
+
+        overlapping_reservations = queryset.filter(
+            start_time__lt=end_time,
+            end_time__gt=start_time,
+        ).order_by('start_time')
+
+        occupied = []
+        for reservation in overlapping_reservations:
+            occupied_start = max(reservation.start_time, start_time)
+            occupied_end = min(reservation.end_time, end_time)
+            if occupied_start < occupied_end:
+                occupied.append((occupied_start, occupied_end))
+
+        available_slots = []
+        current_start = datetime.datetime.combine(datetime.date.min, start_time)
+        range_end = datetime.datetime.combine(datetime.date.min, end_time)
+
+        for occupied_start, occupied_end in occupied:
+            occupied_dt_start = datetime.datetime.combine(datetime.date.min, occupied_start)
+            occupied_dt_end = datetime.datetime.combine(datetime.date.min, occupied_end)
+
+            if current_start + datetime.timedelta(minutes=slot_length_minutes) <= occupied_dt_start:
+                slot_end = occupied_dt_start
+                available_slots.extend(cls._split_time_range(current_start, slot_end, slot_length_minutes))
+
+            current_start = max(current_start, occupied_dt_end)
+            if current_start >= range_end:
+                break
+
+        if current_start + datetime.timedelta(minutes=slot_length_minutes) <= range_end:
+            available_slots.extend(cls._split_time_range(current_start, range_end, slot_length_minutes))
+
+        return available_slots
+
+    @staticmethod
+    def _split_time_range(start_dt, end_dt, slot_length_minutes):
+        slots = []
+        while start_dt + datetime.timedelta(minutes=slot_length_minutes) <= end_dt:
+            slot_end = start_dt + datetime.timedelta(minutes=slot_length_minutes)
+            slots.append({
+                'start': start_dt.time().strftime('%H:%M'),
+                'end': slot_end.time().strftime('%H:%M'),
+            })
+            start_dt = slot_end
+        return slots
