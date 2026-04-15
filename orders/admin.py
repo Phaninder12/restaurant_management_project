@@ -4,15 +4,14 @@ from .models import Order, OrderItem, Coupon, OrderStatus, PaymentMethod
 # 1. Inline for Order Items
 class OrderItemInline(admin.TabularInline):
     model = OrderItem
-    extra = 0
-    # Updated to match fields in your OrderItem model
+    # Changed extra to 1 so you see one empty row immediately
+    extra = 1 
+    # Removed readonly_fields so you can manually enter the price_at_time
     fields = ('item', 'quantity', 'price_at_time') 
-    readonly_fields = ('price_at_time',) 
 
 # 2. The Custom Action Function
 @admin.action(description="Mark selected orders as Processed")
 def mark_orders_processed(modeladmin, request, queryset):
-    # Updated 'Processed' to 'processing' to match your STATUS_CHOICES
     updated_count = queryset.update(status='processing')
     modeladmin.message_user(
         request, 
@@ -23,15 +22,17 @@ def mark_orders_processed(modeladmin, request, queryset):
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
     actions = [mark_orders_processed]
+    
+    # We now show the inline ALL the time (both on Add and Edit)
+    inlines = [OrderItemInline]
 
-    # Display settings
+    # Display settings for the list view
     list_display = ('order_id', 'customer', 'final_price', 'status', 'created_at')
     list_filter = ('status', 'created_at')
-    # Updated to 'customer__username' to match your model
     search_fields = ('customer__username', 'customer__email', 'order_id')
     date_hierarchy = 'created_at'
 
-    # Layout settings
+    # Layout settings for the detail view
     fieldsets = (
         (None, {
             'fields': ('customer', 'status', 'applied_coupon')
@@ -46,18 +47,13 @@ class OrderAdmin(admin.ModelAdmin):
         }),
     )
 
+    # These fields are calculated by our model methods, so we keep them read-only in the form
     readonly_fields = ('total_price', 'discount_amount', 'final_price', 'created_at', 'updated_at')
-
-    def get_inlines(self, request, obj=None):
-        """Show OrderItem inline only when editing an existing order."""
-        if obj is None: 
-            return []
-        return [OrderItemInline]
 
     # --- SHOW TOTAL REVENUE ON ADMIN PAGE ---
     def changelist_view(self, request, extra_context=None):
         extra_context = extra_context or {}
-        # Get the revenue from the class method we created!
+        # Get the revenue from the class method in models.py
         extra_context['total_revenue'] = Order.calculate_total_revenue()
         return super().changelist_view(request, extra_context=extra_context)
     
@@ -71,3 +67,5 @@ class PaymentMethodAdmin(admin.ModelAdmin):
 # 4. Register remaining models
 admin.site.register(Coupon)
 admin.site.register(OrderStatus)
+# Registering OrderItem separately as well so it shows in the sidebar
+admin.site.register(OrderItem)
