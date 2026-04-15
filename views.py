@@ -1,10 +1,10 @@
-from rest_framework import generics, status, pagination,filters
-from rest_framework.permissions import IsAuthenticated, AllowAny
-from rest_framework.response import Response
-from rest_framework.views import APIView
-from rest_framework.decorators import api_view
-from django.shortcuts import render, redirect
-from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import generics, status, pagination,filters # type: ignore
+from rest_framework.permissions import IsAuthenticated, AllowAny # type: ignore
+from rest_framework.response import Response # type: ignore
+from rest_framework.views import APIView # type: ignore
+from rest_framework.decorators import api_view # type: ignore
+from django.shortcuts import render, redirect # type: ignore
+from django_filters.rest_framework import DjangoFilterBackend # type: ignore
 
 from .models import Order, OrderStatus, PaymentMethod
 from .serializers import (
@@ -80,7 +80,54 @@ class OrderDetailAPIView(generics.RetrieveAPIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class OrderStatusUpdateView(APIView):
+class OrderStatusUpdateView(generics.UpdateAPIView):
+    queryset = Order.objects.all()
+    serializer_class = OrderStatusUpdateSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_update(self, serializer):
+        # 1. Save the updated order
+        instance = serializer.save()
+
+        # 2. Logic to trigger notifications based on status
+        customer_email = instance.customer.email  # Assumes Order has a ForeignKey to User
+        order_id = instance.order_id or instance.id
+        new_status = instance.status
+
+        subject = f"Update on your Order #{order_id}"
+        
+        # Customize messages based on the status
+        messages = {
+            'Processing': "Good news! The kitchen has started preparing your meal.",
+            'Shipped': "Your order is on the way! Our delivery partner has picked it up.",
+            'Delivered': "Enjoy your meal! Your order has been marked as delivered.",
+            'Cancelled': "We're sorry, your order has been cancelled. Contact us for details."
+        }
+
+        # Get the specific message or a default one
+        body = messages.get(new_status, f"Your order status is now: {new_status}")
+
+        # 3. Use your existing utility to send the email
+        if is_valid_email(customer_email):
+            success, msg = send_email(customer_email, subject, body)
+            if not success:
+                # Log the error but don't stop the API response
+                print(f"Failed to notify customer for Order {order_id}: {msg}")
+    """
+    Update the status of an order. 
+    Accepts PUT or PATCH requests.
+    """
+    queryset = Order.objects.all()
+    serializer_class = OrderStatusUpdateSerializer
+    permission_classes = [IsAuthenticated] # Consider IsAdminUser for actual production
+
+    def update(self, request, *args, **kwargs):
+        response = super().update(request, *args, **kwargs)
+        # Optional: Add a custom message to the response
+        return Response({
+            'message': f'Order status updated to {response.data.get("status")}',
+            'data': response.data
+        }, status=status.HTTP_200_OK)
     """
     Update the status of an order (Admin/Staff utility).
     """

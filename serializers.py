@@ -1,4 +1,4 @@
-from rest_framework import serializers
+from rest_framework import serializers # type: ignore
 from .models import Order, OrderItem, PaymentMethod
 
 
@@ -87,3 +87,8 @@ class OrderCreateSerializer(serializers.ModelSerializer):
         # 3. Finalize calculations
         order.calculate_total()
         return order
+    
+class OrderStatusUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Order
+        fields = ['status']    
