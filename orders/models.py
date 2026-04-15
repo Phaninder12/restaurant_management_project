@@ -35,7 +35,7 @@ class PaymentMethod(models.Model):
 class OrderManager(models.Manager):
     def get_active_orders(self):
         return self.filter(
-            Q(status='pending') | Q(status='processing')
+            Q(status='Pending') | Q(status='Processing')
         )
 
     def get_orders_by_status(self, status_name):
@@ -50,7 +50,7 @@ class Order(models.Model):
         ('Cancelled', 'Cancelled'),
     ]
     
-    order_id = models.CharField(max_length=12, unique=True, editable=False, null=True, blank=True)
+    order_id = models.CharField(max_length=12, unique=True,  null=True, blank=True)
     customer = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -61,7 +61,7 @@ class Order(models.Model):
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
-        default='pending',
+        default='Pending',  # Fixed: Match case
     )
     applied_coupon = models.ForeignKey(
         Coupon,
@@ -87,32 +87,22 @@ class Order(models.Model):
 
     @classmethod
     def calculate_total_revenue(cls):
-        result = cls.objects.filter(status__in=['completed', 'delivered']).aggregate(total=Sum('final_price'))
+        # Fixed: Match choice case
+        result = cls.objects.filter(status__in=['Completed', 'Delivered']).aggregate(total=Sum('final_price'))
         return result['total'] or Decimal('0.00')
 
-    # --- Calculation & Logic Methods ---
-
     def calculate_prices(self):
-        """Bridge method to satisfy the call from signals.py"""
         return self.calculate_total()
 
     def calculate_total(self):
-        """Calculates prices based on items and applies discounts."""
         from .utils import calculate_discount
-        
-        # 1. Sum up all related OrderItems
         total = sum(item.get_cost() for item in self.items.all())
         self.total_price = Decimal(total)
-        
-        # 2. Calculate discount using utility
         self.discount_amount = calculate_discount(self)
-        
-        # 3. Calculate final price
         self.final_price = self.total_price - self.discount_amount
         if self.final_price < 0:
             self.final_price = Decimal('0.00')
         
-        # 4. Save fields back to DB directly to avoid recursive signal loops
         Order.objects.filter(pk=self.pk).update(
             total_price=self.total_price,
             discount_amount=self.discount_amount,
@@ -121,10 +111,6 @@ class Order(models.Model):
         return self.final_price
 
     def get_total_item_count(self):
-        """
-        Returns the total number of individual items in the order.
-        Uses database aggregation for efficiency.
-        """
         result = self.items.aggregate(total_qty=models.Sum('quantity'))
         return result['total_qty'] or 0
 
@@ -133,27 +119,6 @@ class Order(models.Model):
             from .utils import generate_unique_order_id
             self.order_id = generate_unique_order_id()
         super().save(*args, **kwargs)
-
-class OrderItem(models.Model):
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
-    item = models.ForeignKey(
-        Item,
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name='order_items',
-    )
-    quantity = models.PositiveIntegerField(default=1)
-    price_at_time = models.DecimalField(max_digits=10, decimal_places=2)
-
-    class Meta:
-        unique_together = ('order', 'item')
-
-    def __str__(self):
-        return f"{self.quantity} x {self.item.item_name if self.item else 'Unknown item'}"
-
-    def get_cost(self):
-        return self.price_at_time * self.quantity
 
 class LoyaltyProgram(models.Model):
     name = models.CharField(max_length=50, unique=True)
@@ -186,7 +151,7 @@ class Reservation(models.Model):
 
     def __str__(self):
         return f"Reservation for {self.customer} on {self.reservation_datetime}"
-    
+
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
     item = models.ForeignKey(
@@ -197,7 +162,6 @@ class OrderItem(models.Model):
         related_name='order_items',
     )
     quantity = models.PositiveIntegerField(default=1)
-    # Changed null=True, blank=True so the admin doesn't force you to type it
     price_at_time = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
 
     class Meta:
@@ -207,15 +171,9 @@ class OrderItem(models.Model):
         return f"{self.quantity} x {self.item.item_name if self.item else 'Unknown item'}"
 
     def get_cost(self):
-        return self.price_at_time * self.quantity
+        return (self.price_at_time or 0) * self.quantity
 
-    # --- NEW AUTOMATION LOGIC ---
     def save(self, *args, **kwargs):
-        """
-        Automatically fetch the price from the linked Item if price_at_time is not set.
-        """
         if not self.price_at_time and self.item:
-            # Assuming your 'Item' model in products/models.py has a field named 'price'
             self.price_at_time = self.item.item_price
-        
-        super().save(*args, **kwargs)    
+        super().save(*args, **kwargs)
