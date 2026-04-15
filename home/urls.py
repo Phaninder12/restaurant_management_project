@@ -4,6 +4,7 @@ from .views import (
     AvailableMenuItemsView,
     AvailableTablesAPIView,
     DailySpecialsView,
+    FAQListView,
     MenuCategoryViewSet,
     MenuCategoryNameListView,
     MenuItemReviewsView,
@@ -49,4 +50,5 @@ urlpatterns = [
     path('tables/available/', AvailableTablesAPIView.as_view(), name='available_tables_api'),
     path('contact/', ContactFormSubmissionCreateAPIView.as_view(), name='contact-form-submit'),
     path('api/available-menu/', AvailableMenuItemsView.as_view(), name='available-menu'),
+    path('faqs/', FAQListView.as_view(), name='faq-list'),
 ]

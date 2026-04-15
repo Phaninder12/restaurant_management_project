@@ -1,14 +1,15 @@
 from django.shortcuts import render
 from django.db import DatabaseError
-from rest_framework import generics, status, serializers
+from rest_framework import generics, status, serializers,pagination
 from rest_framework.generics import ListAPIView, RetrieveAPIView, CreateAPIView
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
-from .models import MenuCategory, MenuItem, Table, Restaurant, ContactFormSubmission, UserReview, DailyOperatingHours
+from .models import FAQ, MenuCategory, MenuItem, Table, Restaurant, ContactFormSubmission, UserReview, DailyOperatingHours
 from .serializers import (
+    FAQSerializer,
     MenuCategorySerializer,
     MenuCategoryNameSerializer,
     MenuItemSerializer,
@@ -303,3 +304,16 @@ class AvailableMenuItemsView(generics.ListAPIView):
         """
         return MenuItem.objects.filter(is_available=True)    
        
+
+class FAQPagination(pagination.PageNumberPagination):
+    page_size = 5
+    max_page_size = 20
+
+class FAQListView(generics.ListAPIView):
+    """
+    API endpoint to retrieve a list of active FAQs.
+    """
+    queryset = FAQ.objects.filter(is_active=True).order_by('-created_at')
+    serializer_class = FAQSerializer
+    permission_classes = [AllowAny] # Publicly accessible
+    pagination_class = FAQPagination       
