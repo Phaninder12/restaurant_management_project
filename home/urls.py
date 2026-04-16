@@ -27,7 +27,7 @@ from .views import (
 )
 
 router = DefaultRouter()
-router.register(r'menu-categories', MenuCategoryViewSet)
+router.register(r'categories', MenuCategoryViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
