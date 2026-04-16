@@ -45,6 +45,7 @@ class MenuItem(models.Model):
     image_url = models.URLField(blank=True, null=True)
     is_daily_special = models.BooleanField(default=False)
     is_available = models.BooleanField(default=True)
+    calories = models.IntegerField(null=True, blank=True)
 
     objects = MenuItemManager()
 
