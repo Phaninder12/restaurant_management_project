@@ -13,30 +13,29 @@ def calculate_discount(original_price, discount_percentage):
         discount_percentage (float or int): The discount percentage (0-100).
 
     Returns:
-        float or None: The discounted price if valid inputs, otherwise None.
+        float or None: The discounted price rounded to 2 decimal places, 
+                       or None if inputs are invalid.
     """
     try:
-        # Convert to float for consistency
+        # Step 3: Handle potential errors by converting to float
         price = float(original_price)
         discount = float(discount_percentage)
 
-        # Validate inputs
-        if price < 0:
-            return None  # Invalid: negative price
-        if discount < 0 or discount > 100:
-            return None  # Invalid: discount out of range
+        # Validate logic: price cannot be negative, discount must be 0-100
+        if price < 0 or discount < 0 or discount > 100:
+            return None
 
         # Calculate discounted price
         if discount == 0:
-            return price
-        elif discount == 100:
-            return 0.0
-        else:
-            discounted_price = price * (1 - discount / 100)
-            return round(discounted_price, 2)
+            return round(price, 2)
+        
+        discount_amount = price * (discount / 100)
+        discounted_price = price - discount_amount
+        
+        return round(discounted_price, 2)
 
     except (ValueError, TypeError):
-        # Handle cases where inputs cannot be converted to float
+        # Gracefully handle cases where inputs are strings or None
         return None
 
 
