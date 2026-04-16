@@ -95,7 +95,7 @@ class Restaurant(models.Model):
         return self.name
 
     def get_total_menu_items(self):
-        return MenuItem.objects.count()
+        return MenuItem.objects.filter(is_available=True).count()
 
 
 class DailyOperatingHours(models.Model):

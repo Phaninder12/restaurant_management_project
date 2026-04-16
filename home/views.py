@@ -349,10 +349,13 @@ def get_restaurant_info(request):
 @permission_classes([AllowAny])
 def menu_item_count_view(request):
     """
-    API endpoint to return the total number of available menu items.
+    Returns a count of all currently available menu items.
     """
-    # Use Django's ORM to count only items marked as available
-    available_count = MenuItem.objects.filter(is_available=True).count()
-    
-    # Return the count as a JSON response
-    return Response({'total_menu_items': available_count}, status=status.HTTP_200_OK)        
+    restaurant = Restaurant.objects.first()
+    if not restaurant:
+        # Fallback if no restaurant object exists yet
+        count = MenuItem.objects.filter(is_available=True).count()
+    else:
+        count = restaurant.get_total_menu_items()
+        
+    return Response({'total_menu_items': count})    
