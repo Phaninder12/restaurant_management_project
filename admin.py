@@ -1,5 +1,5 @@
 from django.contrib import admin # type: ignore
-from .models import Restaurant,MenuItem, MenuCategory, Cuisine
+from .models import Ingredient, Restaurant,MenuItem, MenuCategory, Cuisine, UserReview
 
 @admin.register(MenuItem)
 class MenuItemAdmin(admin.ModelAdmin):
@@ -35,8 +35,17 @@ class RestaurantAdmin(admin.ModelAdmin):
     # 5. Add a sidebar filter for boolean or categorical fields
     list_filter = ('has_delivery',)
 
+@admin.register(UserReview)
+class UserReviewAdmin(admin.ModelAdmin):
+    # This determines what you see in the table list
+    list_display = ('user', 'menu_item', 'rating', 'review_date')
+    # This adds a sidebar to filter by rating or date
+    list_filter = ('rating', 'review_date')
+    # This allows you to search by username or review text
+    search_fields = ('user__username', 'comment')    
+
 # 6. Register the model with its custom Admin class
 admin.site.register(Restaurant, RestaurantAdmin)
-
+admin.site.register(Ingredient)
 admin.site.register(MenuCategory)
 admin.site.register(Cuisine)
