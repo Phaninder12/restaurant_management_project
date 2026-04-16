@@ -111,4 +111,4 @@ REST_FRAMEWORK = {
 # This prints the email to your terminal/console instead of sending it
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 DEFAULT_FROM_EMAIL = 'support@restaurant_management.com'
-ADMIN_EMAIL = 'admin@restaurant.com'
+ADMIN_EMAIL = 'admin@restaurant.com'   
