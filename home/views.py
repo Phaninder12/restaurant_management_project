@@ -22,7 +22,7 @@ from .serializers import (
     MenuItemSearchSerializer,
     MenuItemSerializer,
 )
-
+from .utils import calculate_average_rating
 
 class MenuCategoryViewSet(ModelViewSet):
     queryset = MenuCategory.objects.all()
@@ -317,3 +317,30 @@ class FAQListView(generics.ListAPIView):
     serializer_class = FAQSerializer
     permission_classes = [AllowAny] # Publicly accessible
     pagination_class = FAQPagination       
+
+@api_view(['GET'])
+def get_restaurant_info(request):
+    """
+    Retrieve information about the restaurant including the average rating.
+    """
+    try:
+        restaurant = Restaurant.objects.first()
+        if not restaurant:
+            return Response({'error': 'No restaurant information available'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # --- NEW LOGIC START ---
+        # Fetch all reviews and calculate the average
+        all_reviews = UserReview.objects.all()
+        avg_rating = calculate_average_rating(all_reviews)
+        # --- NEW LOGIC END ---
+
+        serializer = RestaurantSerializer(restaurant)
+        
+        # Combine the serialized data with the new average rating
+        data = serializer.data
+        data['average_rating'] = avg_rating
+        data['total_reviews'] = all_reviews.count()
+
+        return Response(data)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)    
