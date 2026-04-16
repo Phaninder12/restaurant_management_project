@@ -1,5 +1,5 @@
 from django.contrib import admin # type: ignore
-from .models import Ingredient, Restaurant,MenuItem, MenuCategory, Cuisine, UserReview
+from .models import Ingredient, Restaurant,MenuItem, MenuCategory, Cuisine, Table, UserReview
 
 @admin.register(MenuItem)
 class MenuItemAdmin(admin.ModelAdmin):
@@ -44,6 +44,17 @@ class UserReviewAdmin(admin.ModelAdmin):
     # This allows you to search by username or review text
     search_fields = ('user__username', 'comment')    
 
+
+@admin.register(Table)
+class TableAdmin(admin.ModelAdmin):
+    # This displays these columns in the admin list view
+    list_display = ('table_number', 'capacity', 'is_available')
+    # This adds a filter sidebar on the right
+    list_filter = ('is_available', 'capacity')
+    # This allows you to search by table number
+    search_fields = ('table_number',)
+
+    
 # 6. Register the model with its custom Admin class
 admin.site.register(Restaurant, RestaurantAdmin)
 admin.site.register(Ingredient)
