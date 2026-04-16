@@ -138,13 +138,21 @@ class DailySpecial(models.Model):
     objects = DailySpecialManager()
 
 
+# home/models.py
+
 class Table(models.Model):
-    number = models.PositiveIntegerField(unique=True)
+    # Field to uniquely identify each table
+    table_number = models.PositiveIntegerField(unique=True)
+    
+    # Capacity for seating
     capacity = models.PositiveIntegerField()
+    
+    # Availability status
     is_available = models.BooleanField(default=True)
 
     def __str__(self):
-        return f"Table {self.number}"
+        # Format for easy identification in Django Admin
+        return f"Table {self.table_number} (Capacity: {self.capacity})"
 
 
 class ContactFormSubmission(models.Model):
