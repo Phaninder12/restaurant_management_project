@@ -98,9 +98,12 @@ class UserReviewSerializer(serializers.ModelSerializer):
         return value
     
 class MenuItemSerializer(serializers.ModelSerializer):
+    # This pulls the name from the related MenuCategory model
+    category_name = serializers.CharField(source='category.name', read_only=True)
+
     class Meta:
         model = MenuItem
-        fields = ['id', 'name', 'description', 'price', 'is_available']    
+        fields = ['id', 'name', 'description', 'price', 'category', 'category_name']
 
 class FAQSerializer(serializers.ModelSerializer):
     class Meta:

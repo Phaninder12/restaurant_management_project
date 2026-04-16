@@ -106,12 +106,21 @@ def get_restaurant_opening_hours(request):
 
 
 class MenuItemListView(generics.ListAPIView):
+    """
+    List all menu items with optional filtering by category ID.
+    """
     serializer_class = MenuItemSerializer
     permission_classes = [AllowAny]
 
     def get_queryset(self):
-        return MenuItem.objects.all()
-
+        queryset = MenuItem.objects.all()
+        # Retrieve 'category' from the URL query parameters (e.g., ?category=1)
+        category_id = self.request.query_params.get('category')
+        
+        if category_id:
+            queryset = queryset.filter(category_id=category_id)
+            
+        return queryset
 
 class DailySpecialsView(generics.ListAPIView):
     serializer_class = MenuItemSerializer
