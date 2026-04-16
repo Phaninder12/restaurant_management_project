@@ -343,4 +343,16 @@ def get_restaurant_info(request):
 
         return Response(data)
     except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)    
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def menu_item_count_view(request):
+    """
+    API endpoint to return the total number of available menu items.
+    """
+    # Use Django's ORM to count only items marked as available
+    available_count = MenuItem.objects.filter(is_available=True).count()
+    
+    # Return the count as a JSON response
+    return Response({'total_menu_items': available_count}, status=status.HTTP_200_OK)        
