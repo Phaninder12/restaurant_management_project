@@ -1,56 +1,29 @@
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
-from .views import (
-    AvailableMenuItemsView,
-    AvailableTablesAPIView,
-    DailySpecialsView,
-    FAQListView,
-    MenuCategoryViewSet,
-    MenuCategoryNameListView,
-    MenuItemReviewsView,
-    TableDetailView,
-    MenuItemListView,
-    MenuItemDetailView,
-    MenuItemPriceRangeView,
-    RestaurantReviewListView,
-    RestaurantInfoAPIView,
-    ContactFormSubmissionCreateAPIView,
-    UserReviewCreateView,
-    UserReviewListView,
-    RestaurantOpeningHoursListView,
-    MenuItemSearchView,
-    menu_item_count_view,
-    update_menu_item_availability,
-    get_restaurant_info,
-    get_restaurant_opening_hours,
-    get_menu_item_availability,
-)
+"""
+URL configuration for restaurant_management project.
 
-router = DefaultRouter()
-router.register(r'menu-categories', MenuCategoryViewSet)
+The `urlpatterns` list routes URLs to views. For more information please see:
+    https://docs.djangoproject.com/en/4.2/topics/http/urls/
+Examples:
+Function views
+    1. Add an import:  from my_app import views
+    2. Add a URL to urlpatterns:  path('', views.home, name='home')
+Class-based views
+    1. Add an import:  from other_app.views import Home
+    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
+Including another URLconf
+    1. Import the include() function: from django.urls import include, path
+    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
+"""
+from django.contrib import admin # type: ignore
+from django.urls import path,include # type: ignore
+from django.http import HttpResponse # type: ignore
+
 
 urlpatterns = [
-    path('', include(router.urls)),
-    path('reviews/', UserReviewListView.as_view(), name='user-reviews-list'),
-    path('restaurant-reviews/', RestaurantReviewListView.as_view(), name='restaurant-reviews-list'),
-    path('reviews/create/', UserReviewCreateView.as_view(), name='create-review'),
-    path('menu-items/', MenuItemListView.as_view(), name='menu-item-list'),
-    path('menu-items/price-range/', MenuItemPriceRangeView.as_view(), name='menu-item-price-range'),
-    path('menu-items/<int:menu_item_id>/', MenuItemDetailView.as_view(), name='menu-item-detail'),
-    path('menu-items/<int:menu_item_id>/reviews/', MenuItemReviewsView.as_view(), name='menu-item-reviews'),
-    path('menu-items/<int:menu_item_id>/availability/', update_menu_item_availability, name='update-menu-item-availability'),
-    path('menu-items/<int:menu_item_id>/availability-check/', get_menu_item_availability, name='menu-item-availability-check'),
-    path('menu-items/search/', MenuItemSearchView.as_view(), name='menu-item-search'),
-    path('menu-categories/names/', MenuCategoryNameListView.as_view(), name='menu-category-names'),
-    path('daily-specials/', DailySpecialsView.as_view(), name='daily-specials'),
-    path('restaurant-info/', get_restaurant_info, name='restaurant-info'),
-    path('restaurant-opening-hours/', get_restaurant_opening_hours, name='restaurant-opening-hours'),
-    path('opening-hours/', RestaurantOpeningHoursListView.as_view(), name='opening-hours'),
-    # Detail endpoint: e.g., /api/tables/1/
-    path('tables/<int:pk>/', TableDetailView.as_view(), name='table-detail'),
-    path('tables/available/', AvailableTablesAPIView.as_view(), name='available_tables_api'),
-    path('contact/', ContactFormSubmissionCreateAPIView.as_view(), name='contact-form-submit'),
-    path('api/available-menu/', AvailableMenuItemsView.as_view(), name='available-menu'),
-    path('faqs/', FAQListView.as_view(), name='faq-list'),
-    path('menu-items/count/', menu_item_count_view, name='menu-item-count'),
+    path('', lambda request: HttpResponse("<h1>Welcome to Restaurant Management API 🍽️</h1><p>Use <b>/api/products/items/</b> to see menu items</p>")),
+    path('admin/', admin.site.urls),
+    path('',include('home.urls')),
+    path('api/accounts/',include('account.urls')),
+    path('api/products/',include('products.urls')),
+    path('api/orders/',include('orders.urls')),
 ]

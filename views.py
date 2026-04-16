@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from django.db import DatabaseError
-from rest_framework import generics, status, serializers,pagination
+from rest_framework import generics, status, serializers,pagination,viewsets
 from rest_framework.generics import ListAPIView, RetrieveAPIView, CreateAPIView
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -24,10 +24,12 @@ from .serializers import (
 )
 from .utils import calculate_average_rating
 
-class MenuCategoryViewSet(ModelViewSet):
+class MenuCategoryViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    A simple ViewSet for viewing menu categories.
+    """
     queryset = MenuCategory.objects.all()
     serializer_class = MenuCategorySerializer
-    permission_classes = [AllowAny]
 
 
 class MenuCategoryNameListView(ListAPIView):
