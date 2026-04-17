@@ -22,7 +22,7 @@ from .serializers import (
     MenuItemSearchSerializer,
     MenuItemSerializer,
 )
-from .utils import calculate_average_rating
+from .utils import calculate_average_rating, is_restaurant_open
 
 class MenuCategoryViewSet(viewsets.ReadOnlyModelViewSet):
     """
@@ -370,3 +370,10 @@ def menu_item_count_view(request):
         count = restaurant.get_total_menu_items()
         
     return Response({'total_menu_items': count})    
+
+def home_page(request):
+    # Call your utility function
+    status = is_restaurant_open()
+    
+    # Pass 'is_open' into the context dictionary
+    return render(request, 'home/home.html', {'is_open': status})
