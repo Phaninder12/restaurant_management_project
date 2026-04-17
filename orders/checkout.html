@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout - Order #{{ order.id }}</title>
+    <style>
+        .checkout-container { width: 50%; margin: auto; font-family: sans-serif; border: 1px solid #ddd; padding: 20px; border-radius: 8px; }
+        .summary-line { display: flex; justify-content: space-between; margin-bottom: 10px; }
+        .total-line { border-top: 2px solid #333; padding-top: 10px; font-weight: bold; font-size: 1.2em; }
+        .discount-text { color: green; }
+    </style>
+</head>
+<body>
+    <div class="checkout-container">
+    <h2>Order Summary</h2>
+    <hr>
+    
+    <div class="summary-line">
+        <span>Order ID:</span>
+        <span>#{{ order.id }}</span>
+    </div>
+
+    <div class="summary-line">
+        <span>Subtotal:</span>
+        <span>${{ order.total_price }}</span>
+    </div>
+
+    {% if discount > 0 %}
+    <div class="summary-line discount-text">
+        <span>Discount (Coupon: {{ order.applied_coupon.code }}):</span>
+        <span>- ${{ discount }}</span>
+    </div>
+    {% endif %}
+
+    <div class="summary-line total-line">
+        <span>Final Total:</span>
+        <span>${{ final_total }}</span>
+    </div>
+
+    <br>
+    <button style="width: 100%; padding: 10px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer;">
+        Complete Payment
+    </button>
+</div>
+</body>
+</html>
