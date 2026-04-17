@@ -1,29 +1,20 @@
-"""
-URL configuration for restaurant_management project.
-
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/4.2/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
-"""
-from django.contrib import admin # type: ignore
-from django.urls import path,include # type: ignore
-from django.http import HttpResponse # type: ignore
-
+from django.urls import path
+from . import views
 
 urlpatterns = [
-    path('', lambda request: HttpResponse("<h1>Welcome to Restaurant Management API 🍽️</h1><p>Use <b>/api/products/items/</b> to see menu items</p>")),
-    path('admin/', admin.site.urls),
-    path('',include('home.urls')),
-    path('api/accounts/',include('account.urls')),
-    path('api/products/',include('products.urls')),
-    path('api/orders/',include('orders.urls')),
+    # Collection Views
+    path('history/', views.OrderHistoryListView.as_view(), name='order-history'),
+    path('payment-methods/', views.PaymentMethodListView.as_view(), name='payment-methods'),
+    path('place-order/', views.place_order, name='place_order'),
+
+    # Individual Order Detail/Actions
+    path('<int:pk>/', views.OrderDetailAPIView.as_view(), name='order_detail_api'),
+    path('<int:pk>/status/update/', views.OrderStatusUpdateView.as_view(), name='order-status-update'),
+    path('<int:pk>/apply-coupon/', views.ApplyCouponView.as_view(), name='apply-coupon'),
+    
+    # Tracking (Public tracking via the string order_id)
+    path('<str:order_id>/status/', views.OrderStatusRetrieveView.as_view(), name='order-status-retrieve'),
+    path('kitchen/dashboard/', views.KitchenDashboardView.as_view(), name='kitchen-dashboard'),
+    path('summary/<int:pk>/', views.OrderSummaryDetailView.as_view(), name='order-summary'),
+    path('checkout/<int:order_id>/', views.checkout, name='checkout'),
 ]
