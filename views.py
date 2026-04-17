@@ -10,7 +10,11 @@ from rest_framework.response import Response
 from rest_framework.views import APIView # type: ignore
 from rest_framework.decorators import api_view # type: ignore
 
-from .models import Order, OrderStatus, PaymentMethod, Coupon,DailyOperatingHours, Reservation
+# Import things that actually live in orders/models.py
+from .models import Order, OrderStatus, PaymentMethod, Coupon
+from home.models import Reservation
+# Import DailyOperatingHours from wherever it actually lives (likely the home app)
+from home.models import DailyOperatingHours
 from restaurant_management.utils import is_reservation_time_valid,calculate_discount
 
 

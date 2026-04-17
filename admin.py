@@ -1,5 +1,5 @@
 from django.contrib import admin # type: ignore
-from .models import Ingredient, Restaurant,MenuItem, MenuCategory, Cuisine, Table, UserReview
+from .models import DailyOperatingHours, Ingredient, Reservation, Restaurant,MenuItem, MenuCategory, Cuisine, Table, UserReview
 
 @admin.register(MenuItem)
 class MenuItemAdmin(admin.ModelAdmin):
@@ -60,3 +60,6 @@ admin.site.register(Restaurant, RestaurantAdmin)
 admin.site.register(Ingredient)
 admin.site.register(MenuCategory)
 admin.site.register(Cuisine)
+
+admin.site.register(Reservation)
+admin.site.register(DailyOperatingHours)
