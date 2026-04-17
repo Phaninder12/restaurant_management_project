@@ -22,7 +22,7 @@ from .serializers import (
     MenuItemSearchSerializer,
     MenuItemSerializer,
 )
-from .utils import calculate_average_rating, is_restaurant_open
+from .utils import calculate_average_rating, get_available_tables_by_capacity, is_restaurant_open
 
 class MenuCategoryViewSet(viewsets.ReadOnlyModelViewSet):
     """
@@ -379,9 +379,11 @@ def home_page(request):
     return render(request, 'home/home.html', {'is_open': status})
 
 class TableListAPIView(generics.ListAPIView):
-    """
-    API endpoint that returns a list of all tables.
-    You can filter for only available tables by overriding the queryset.
-    """
-    queryset = Table.objects.filter(is_available=True)
     serializer_class = TableSerializer
+
+    def get_queryset(self):
+        # Look for a ?guests=X parameter in the URL
+        num_guests = self.request.query_params.get('guests')
+        if num_guests:
+            return get_available_tables_by_capacity(int(num_guests))
+        return Table.objects.filter(is_available=True)
