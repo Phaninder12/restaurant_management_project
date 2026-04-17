@@ -16,4 +16,5 @@ urlpatterns = [
     path('<str:order_id>/status/', views.OrderStatusRetrieveView.as_view(), name='order-status-retrieve'),
     path('kitchen/dashboard/', views.KitchenDashboardView.as_view(), name='kitchen-dashboard'),
     path('summary/<int:pk>/', views.OrderSummaryDetailView.as_view(), name='order-summary'),
+    path('checkout/<int:order_id>/', views.checkout, name='checkout'),
 ]

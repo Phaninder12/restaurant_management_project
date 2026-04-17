@@ -1,3 +1,5 @@
+from pyexpat.errors import messages
+
 from django.conf import settings
 from django.shortcuts import render, redirect,get_object_or_404
 from django.utils import timezone
@@ -8,7 +10,10 @@ from rest_framework.response import Response
 from rest_framework.views import APIView # type: ignore
 from rest_framework.decorators import api_view # type: ignore
 
-from .models import Order, OrderStatus, PaymentMethod, Coupon
+from .models import Order, OrderStatus, PaymentMethod, Coupon,DailyOperatingHours, Reservation
+from restaurant_management.utils import is_reservation_time_valid,calculate_discount
+
+
 from .serializers import (
     OrderCreateSerializer,
     OrderSerializer, 
@@ -175,3 +180,35 @@ class OrderSummaryDetailView(APIView):
         
         serializer = OrderSummarySerializer(order)
         return Response(serializer.data, status=status.HTTP_200_OK)    
+    
+
+def book_reservation(request):
+    if request.method == "POST":
+        proposed_time_str = request.POST.get('reservation_datetime')
+        # Convert string from form to python datetime object
+        proposed_time = datetime.strptime(proposed_time_str, '%Y-%m-%dT%H:%M')
+
+        # Use your utility function
+        if is_reservation_time_valid(proposed_time, DailyOperatingHours):
+            # Logic to save the reservation
+            Reservation.objects.create(time=proposed_time, user=request.user)
+            messages.success(request, "Reservation confirmed!")
+            return redirect('home')
+        else:
+            messages.error(request, "Sorry, the restaurant is closed at that time.")
+    
+    return render(request, 'booking_template.html')
+
+
+def checkout(request, order_id):
+    # It's safer to use get_object_or_404 in case the ID is wrong
+    order = get_object_or_404(Order, id=order_id)
+    
+    discount_amount = calculate_discount(order)
+    final_total = order.total_price - discount_amount
+    
+    return render(request, 'checkout.html', {
+        'order': order,
+        'discount': discount_amount,
+        'final_total': final_total
+    })
