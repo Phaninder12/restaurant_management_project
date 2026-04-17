@@ -49,11 +49,17 @@ class MenuItem(models.Model):
     is_daily_special = models.BooleanField(default=False)
     is_available = models.BooleanField(default=True)
     calories = models.IntegerField(null=True, blank=True)
-
+    allergens = models.CharField(
+        max_length=255, 
+        blank=True, 
+        null=True, 
+        help_text="Comma-separated list (e.g., Gluten, Nuts, Dairy)"
+    )
     objects = MenuItemManager()
 
     def __str__(self):
-        return self.name
+        allergen_status = f" [Allergens: {self.allergens}]" if self.allergens else ""
+        return f"{self.name} - ${self.price}{allergen_status}"
 
     def get_final_price(self):
         from decimal import Decimal

@@ -3,9 +3,9 @@ from .models import DailyOperatingHours, Ingredient, Reservation, Restaurant,Men
 
 @admin.register(MenuItem)
 class MenuItemAdmin(admin.ModelAdmin):
-    list_display = ['name', 'category', 'price', 'is_available']
-    list_filter = ['is_available', 'category']
-    # Add the action name here
+    list_display = ('name', 'category', 'price', 'allergens', 'is_available')
+    list_filter = ('category', 'is_available', 'allergens') # Now you can filter by allergen type!
+    search_fields = ('name', 'allergens')
     actions = ['make_unavailable', 'make_available']
 
     @admin.action(description="Mark selected items as Out of Stock")
