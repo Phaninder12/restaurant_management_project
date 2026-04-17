@@ -15,6 +15,7 @@ from .views import (
     RestaurantReviewListView,
     RestaurantInfoAPIView,
     ContactFormSubmissionCreateAPIView,
+    TableListAPIView,
     UserReviewCreateView,
     UserReviewListView,
     RestaurantOpeningHoursListView,
@@ -53,4 +54,5 @@ urlpatterns = [
     path('api/available-menu/', AvailableMenuItemsView.as_view(), name='available-menu'),
     path('faqs/', FAQListView.as_view(), name='faq-list'),
     path('menu-items/count/', menu_item_count_view, name='menu-item-count'),
+    path('api/tables/', TableListAPIView.as_view(), name='table-list-api'),
 ]

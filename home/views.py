@@ -377,3 +377,11 @@ def home_page(request):
     
     # Pass 'is_open' into the context dictionary
     return render(request, 'home/home.html', {'is_open': status})
+
+class TableListAPIView(generics.ListAPIView):
+    """
+    API endpoint that returns a list of all tables.
+    You can filter for only available tables by overriding the queryset.
+    """
+    queryset = Table.objects.filter(is_available=True)
+    serializer_class = TableSerializer
