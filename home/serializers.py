@@ -60,7 +60,7 @@ class MenuItemSearchSerializer(serializers.ModelSerializer):
 class TableSerializer(serializers.ModelSerializer):
     class Meta:
         model = Table
-        fields = ['id', 'number', 'capacity', 'is_available']
+        fields = ['id', 'table_number', 'capacity', 'is_available']
 
 
 class DailyOperatingHoursSerializer(serializers.ModelSerializer):
