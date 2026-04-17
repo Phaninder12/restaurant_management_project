@@ -1,30 +1,59 @@
 import re
-
+from decimal import Decimal
+from datetime import datetime, time
+from orders.models import Order
+from restaurant_management.utils import format_phone_number
 
 def format_phone_number(phone_str):
     """
     Formats a string into a standard phone format: (XXX) XXX-XXXX
-    Returns the original string if it's invalid.
     """
     try:
-        # Step 1: Remove all non-numeric characters
-        # e.g., "+1 (555) 123-4567" -> "15551234567"
         cleaned = re.sub(r'\D', '', str(phone_str))
 
-        # Step 2: Handle different lengths
         if len(cleaned) == 10:
-            # Format: (123) 456-7890
             return f"({cleaned[:3]}) {cleaned[3:6]}-{cleaned[6:]}"
-        
         elif len(cleaned) == 11 and cleaned.startswith('1'):
-            # Format for US country code: +1 (123) 456-7890
             return f"+1 ({cleaned[1:4]}) {cleaned[4:7]}-{cleaned[7:]}"
-        
         else:
-            # If it's an unexpected length, return as is or handle specifically
             return phone_str
-
     except Exception as e:
-        # Gracefully handle None values or unexpected types
         print(f"Error formatting phone number: {e}")
         return phone_str
+
+def calculate_discount(order):
+    """
+    Calculates discount based on applied coupon percentage.
+    """
+    if order.applied_coupon:
+        percentage = order.applied_coupon.discount_percentage
+        discount = (order.total_price * percentage) / Decimal('100')
+        return discount
+    return Decimal('0.00')
+
+def is_reservation_time_valid(proposed_datetime, operating_hours_model):
+    """
+    Checks if a proposed reservation fits within the restaurant's operating hours.
+    """
+    day_name = proposed_datetime.strftime('%A') 
+    
+    try:
+        hours = operating_hours_model.objects.get(day=day_name)
+    except operating_hours_model.DoesNotExist:
+        return False
+
+    reservation_time = proposed_datetime.time()
+    
+    # Check if time is within open hours
+    if hours.opening_time <= reservation_time <= hours.closing_time:
+        return True
+    
+    return False
+
+def staff_dashboard(request):
+    orders = Order.objects.all()
+    for order in orders:
+        # Dynamically format the phone number for display
+        order.formatted_phone = format_phone_number(order.customer_phone)
+    
+    return render(request, 'dashboard.html', {'orders': orders}) # type: ignore
